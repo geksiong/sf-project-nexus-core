@@ -114,6 +114,28 @@ private class EscalateCaseActionTest {
         Assert.areEqual(CaseEscalationService.ERROR_NOT_FOUND, results[2].errorCode);
     }
 
+    /** @description Callers without the service permissions get the envelope, never an exception. */
+    @IsTest
+    static void callersWithoutFieldAccessGetAnEnvelopeNotAnException() {
+        User outsider = TestDataFactory.createTestUser('Standard User', null);
+        System.runAs(new User(Id = UserInfo.getUserId())) {
+            insert outsider;
+        }
+        Case c = ServiceDeskTestFixtures.newCase(null, outsider.Id, 'Medium');
+        insert c;
+
+        List<EscalateCaseAction.Result> results;
+        System.runAs(outsider) {
+            results = EscalateCaseAction.execute(
+                new List<EscalateCaseAction.Request>{ request(c.Id, 'Customer outage', null) }
+            );
+        }
+
+        Assert.isFalse(results[0].isSuccess, String.valueOf(results[0]));
+        Assert.areEqual(CaseEscalationService.ERROR_DML, results[0].errorCode, String.valueOf(results[0]));
+        Assert.areEqual('New', [SELECT Status FROM Case WHERE Id = :c.Id].Status, 'Nothing was changed');
+    }
+
     @IsTest
     static void inactiveTechnicalSmeIsRejected() {
         User sme = ServiceDeskTestFixtures.getUser(ServiceDeskTestFixtures.SME_LAST_NAME);

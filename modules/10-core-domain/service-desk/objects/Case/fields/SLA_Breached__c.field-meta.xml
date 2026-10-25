@@ -2,9 +2,9 @@
 <CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
     <fullName>SLA_Breached__c</fullName>
     <defaultValue>false</defaultValue>
-    <description>Set by the Nexus Standard Support entitlement process when a milestone is violated. CaseEscalationService escalates the case when this flips to true.</description>
-    <inlineHelpText>An SLA milestone on this case was violated.</inlineHelpText>
-    <label>SLA Breached</label>
+    <description>One-shot signal: the Nexus Standard Support entitlement process sets it when any milestone is violated; CaseEscalationService escalates the case, stamps SLA_Violated_On__c and resets it, so every violation escalates (not only the first). Report on SLA_Violated_On__c or CaseMilestone.IsViolated instead.</description>
+    <inlineHelpText>Automation signal (reset immediately). See SLA Violated On.</inlineHelpText>
+    <label>SLA Violation Signal</label>
     <trackHistory>false</trackHistory>
     <type>Checkbox</type>
 </CustomField>

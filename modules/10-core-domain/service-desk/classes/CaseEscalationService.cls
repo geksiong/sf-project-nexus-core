@@ -1,7 +1,8 @@
 /**
  * @description Escalation to Tier 2. Every channel converges on one policy applied in the Case trigger:
  *  - Escalate Case flow / Agentforce / MCP: EscalateCaseAction sets Status = Escalated in user mode;
- *  - SLA breach: the entitlement process flags SLA_Breached__c (system automation);
+ *  - SLA violation: the entitlement process sets the SLA_Breached__c signal (system automation). The
+ *    policy consumes it (stamps SLA_Violated_On__c, resets the signal), so every violation escalates;
  *  - Manual: an agent sets Status = Escalated on the record.
  *
  * Policy (before update): priority High, owner the Tier 2 queue (Omni-Channel routes it), timestamp,
@@ -22,6 +23,14 @@ public with sharing class CaseEscalationService {
 
     private static final Integer REASON_MAX_LENGTH = 255;
 
+    /** @description DML status codes that are expected rejections (rules, locks, access), logged at WARN. */
+    private static final Set<StatusCode> EXPECTED_REJECTION_CODES = new Set<StatusCode>{
+        StatusCode.FIELD_CUSTOM_VALIDATION_EXCEPTION,
+        StatusCode.ENTITY_IS_LOCKED,
+        StatusCode.INSUFFICIENT_ACCESS_OR_READONLY,
+        StatusCode.INSUFFICIENT_ACCESS_ON_CROSS_REFERENCE_ENTITY
+    };
+
     // ---------------------------------------------------------------------------------------------
     // Trigger entry points
     // ---------------------------------------------------------------------------------------------
@@ -31,15 +40,21 @@ public with sharing class CaseEscalationService {
         return old != null && c.Status == STATUS_ESCALATED && old.Status != STATUS_ESCALATED;
     }
 
-    /** @description Before update: converts SLA breaches into escalations and applies the policy. */
+    /** @description Before update: converts SLA violations into escalations and applies the policy. */
     public static void applyEscalationPolicy(List<Case> cases, Map<Id, Case> oldMap) {
         List<Case> escalating = new List<Case>();
         for (Case c : cases) {
             Case old = oldMap.get(c.Id);
             Boolean reasonProvided =
                 String.isNotBlank(c.Escalation_Reason__c) && c.Escalation_Reason__c != old.Escalation_Reason__c;
-            Boolean breached = c.SLA_Breached__c && !old.SLA_Breached__c && !old.IsClosed;
-            if (breached && old.Status != STATUS_ESCALATED && c.Status != STATUS_ESCALATED) {
+            // One-shot signal: consume and reset it, so the next violated milestone flips it again.
+            // (Changing the in-use entitlement process to stamp a field instead would need a new version.)
+            Boolean violated = c.SLA_Breached__c && !old.SLA_Breached__c;
+            if (violated) {
+                c.SLA_Breached__c = false;
+                c.SLA_Violated_On__c = System.now();
+            }
+            if (violated && !old.IsClosed && old.Status != STATUS_ESCALATED && c.Status != STATUS_ESCALATED) {
                 c.Status = STATUS_ESCALATED;
                 if (!reasonProvided) {
                     c.Escalation_Reason__c = REASON_SLA_BREACH;
@@ -180,7 +195,7 @@ public with sharing class CaseEscalationService {
                 Boolean expected = true;
                 for (Database.Error err : saveResults[j].getErrors()) {
                     messages.add(err.getMessage());
-                    expected &= err.getStatusCode() == StatusCode.FIELD_CUSTOM_VALIDATION_EXCEPTION;
+                    expected &= EXPECTED_REJECTION_CODES.contains(err.getStatusCode());
                 }
                 fail(results[i], ERROR_DML, String.join(messages, ' '), existing.Id, expected);
             }

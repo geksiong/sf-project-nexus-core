@@ -62,7 +62,7 @@ private class CaseSlaServiceTest {
         Case alreadyEntitled = new Case(AccountId = ACCOUNT_ID, EntitlementId = OTHER_ENTITLEMENT_ID);
         Case noAccount = new Case();
 
-        CaseSlaService.assignEntitlements(new List<Case>{ fromAccount, alreadyEntitled, noAccount });
+        CaseSlaService.assignEntitlements(new List<Case>{ fromAccount, alreadyEntitled, noAccount }, null);
 
         Assert.areEqual(ENTITLEMENT_ID, fromAccount.EntitlementId);
         Assert.areEqual(OTHER_ENTITLEMENT_ID, alreadyEntitled.EntitlementId, 'An explicit entitlement wins');
@@ -73,8 +73,25 @@ private class CaseSlaServiceTest {
     @IsTest
     static void casesWithoutAccountsDoNotQuery() {
         mockFacts(null);
-        CaseSlaService.assignEntitlements(new List<Case>{ new Case() });
+        CaseSlaService.assignEntitlements(new List<Case>{ new Case() }, null);
         Assert.areEqual(0, facts.callCount('selectActiveEntitlementIdsByAccount'));
+    }
+
+    @IsTest
+    static void casesGivenAnAccountLaterInheritItsEntitlement() {
+        mockFacts(null);
+        Case unassigned = new Case(Id = TestDataFactory.getFakeId(Case.SObjectType));
+        Case accountAdded = unassigned.clone(true);
+        accountAdded.AccountId = ACCOUNT_ID;
+        Case accountUnchanged = new Case(Id = TestDataFactory.getFakeId(Case.SObjectType), AccountId = ACCOUNT_ID);
+
+        CaseSlaService.assignEntitlements(
+            new List<Case>{ accountAdded, accountUnchanged },
+            new Map<Id, Case>{ unassigned.Id => unassigned, accountUnchanged.Id => accountUnchanged.clone(true) }
+        );
+
+        Assert.areEqual(ENTITLEMENT_ID, accountAdded.EntitlementId);
+        Assert.isNull(accountUnchanged.EntitlementId, 'Only a new account triggers the lookup');
     }
 
     @IsTest
@@ -85,6 +102,26 @@ private class CaseSlaServiceTest {
         Assert.areEqual(
             new Set<Id>{ FIRST_RESPONSE_ID },
             plannedIds(entitled(caseId, 'Working', false), entitled(caseId, 'New', false))
+        );
+    }
+
+    @IsTest
+    static void escalationIsNotAFirstResponse() {
+        Id caseId = TestDataFactory.getFakeId(Case.SObjectType);
+        mockFacts(openMilestones(caseId, true));
+
+        Assert.isTrue(
+            plannedIds(entitled(caseId, CaseEscalationService.STATUS_ESCALATED, false), entitled(caseId, 'New', false))
+                .isEmpty(),
+            'Escalating (e.g. on a missed First Response) does not complete First Response'
+        );
+        Assert.areEqual(
+            new Set<Id>{ FIRST_RESPONSE_ID },
+            plannedIds(
+                entitled(caseId, 'Working', false),
+                entitled(caseId, CaseEscalationService.STATUS_ESCALATED, false)
+            ),
+            'Tier 2 starting work is the first response'
         );
     }
 

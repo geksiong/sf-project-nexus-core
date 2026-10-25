@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>SLA_Violated_On__c</fullName>
+    <description>When an SLA milestone on this case was last violated. Set by CaseEscalationService when it consumes the entitlement process signal (SLA_Breached__c).</description>
+    <label>SLA Violated On</label>
+    <required>false</required>
+    <trackHistory>false</trackHistory>
+    <type>DateTime</type>
+</CustomField>

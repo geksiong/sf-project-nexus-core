@@ -53,7 +53,7 @@ private class CaseTriggerIntegrationTest {
     }
 
     @IsTest
-    static void slaBreachEscalatesAutomatically() {
+    static void everySlaViolationEscalatesAutomatically() {
         User agent = ServiceDeskTestFixtures.getUser(ServiceDeskTestFixtures.AGENT_LAST_NAME);
         Case c = ServiceDeskTestFixtures.newCase(null, agent.Id, 'Low');
         insert c;
@@ -66,6 +66,12 @@ private class CaseTriggerIntegrationTest {
         Assert.areEqual(CaseEscalationService.REASON_SLA_BREACH, saved.Escalation_Reason__c);
         Assert.areEqual(ServiceDeskTestFixtures.escalationQueueId(), saved.OwnerId);
         Assert.areEqual(CaseTeamService.ROLE_ESCALATING_AGENT, ServiceDeskTestFixtures.teamRoles(c.Id).get(agent.Id));
+
+        // Tier 2 de-escalates; a later milestone (Resolution) is violated: the case escalates again.
+        update new Case(Id = c.Id, Status = 'Working');
+        update new Case(Id = c.Id, SLA_Breached__c = true);
+        Assert.areEqual(CaseEscalationService.STATUS_ESCALATED, reload(c.Id).Status);
+        Assert.areEqual(2, commentBodies(c.Id).size(), 'Each escalation is recorded');
     }
 
     @IsTest

@@ -1,6 +1,7 @@
 /**
  * @description Data-access SOQL for Case. All queries run WITH USER_MODE: callers only see the cases,
- * and fields, the running user can access.
+ * and fields, the running user can access. Select only what callers use: every extra field is one more
+ * way for a caller without access to it to get a QueryException instead of a clean result.
  */
 public virtual with sharing class CasesSelector {
     @TestVisible
@@ -19,7 +20,7 @@ public virtual with sharing class CasesSelector {
             return new List<Case>();
         }
         return [
-            SELECT Id, CaseNumber, Subject, Status, IsClosed, Priority, OwnerId, AccountId, Escalation_Reason__c
+            SELECT Id, CaseNumber, Status, IsClosed
             FROM Case
             WHERE Id IN :caseIds
             WITH USER_MODE
