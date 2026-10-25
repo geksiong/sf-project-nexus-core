@@ -1,6 +1,7 @@
 {
-  "$comment": "Single source of truth for Nexus Core DevOps gates (scripts/devops, scripts/org-init, CI).",
+  "$comment": "Single source of truth for Nexus Core DevOps gates (scripts/devops, scripts/org-init, CI). activeModules deploy to the headless scratch org (CI); fullProfileModules need the full org shape (setup-scratch-headless.sh --profile full) and are covered by the static gates only.",
   "activeModules": ["modules/00-foundation", "modules/10-core-domain"],
+  "fullProfileModules": ["modules/20-omnistudio"],
   "minApexCoverage": 85,
   "externalPackages": {
     "Nebula Logger - Core@4.19.5": {

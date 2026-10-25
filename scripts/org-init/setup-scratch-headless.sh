@@ -1,10 +1,12 @@
 #!/usr/bin/env bash
 #
-# Provisions a Nexus Core headless scratch org (Phases 1-4) end to end:
+# Provisions a Nexus Core scratch org end to end. Profiles (config/devops/nexus-devops.json):
+#   headless (default, CI): Phases 1-4 on config/project-scratch-def-headless.json
+#   full: adds fullProfileModules (Phase 5+ OmniStudio, ...) on config/project-scratch-def-full.json
 #   create org -> install Nebula Logger -> deploy modules -> permissions -> persona users -> seed data -> tests
 #
 # Usage: scripts/org-init/setup-scratch-headless.sh [--alias nexus-dev] [--dev-hub DevHubGS] [--days 7]
-#                                                   [--skip-create] [--skip-tests]
+#                                                   [--profile headless|full] [--skip-create] [--skip-tests]
 #
 # Scratch Developer Edition orgs include only 2 Salesforce licenses, so the admin user doubles as the
 # Sales Representative and Service Agent personas, and one extra "Sales Manager" user is created to
@@ -16,6 +18,7 @@ DEV_HUB=""
 DAYS=7
 SKIP_CREATE=false
 SKIP_TESTS=false
+PROFILE="headless"
 NEBULA_LOGGER_PACKAGE_ID="04tg7000000IzRdAAK" # Nebula Logger - Core@4.19.5 (unlocked)
 
 while [[ $# -gt 0 ]]; do
@@ -25,6 +28,7 @@ while [[ $# -gt 0 ]]; do
         --days) DAYS="$2"; shift 2 ;;
         --skip-create) SKIP_CREATE=true; shift ;;
         --skip-tests) SKIP_TESTS=true; shift ;;
+        --profile) PROFILE="$2"; shift 2 ;;
         -h|--help) sed -n '2,12p' "$0"; exit 0 ;;
         *) echo "Unknown option: $1" >&2; exit 1 ;;
     esac
@@ -54,7 +58,7 @@ query_id() {
 
 if [[ "$SKIP_CREATE" == false ]]; then
     step "Creating scratch org '$ALIAS' (${DAYS} days)"
-    sf_json org create scratch -f config/project-scratch-def-headless.json -a "$ALIAS" -y "$DAYS" \
+    sf_json org create scratch -f "config/project-scratch-def-$PROFILE.json" -a "$ALIAS" -y "$DAYS" \
         --set-default --wait 15 ${DEV_HUB:+--target-dev-hub "$DEV_HUB"} | jq -r '"    \(.result.username)"'
 fi
 
@@ -69,6 +73,8 @@ fi
 
 # Active modules come from config/devops/nexus-devops.json (shared with CI and the audit gates).
 mapfile -t MODULES < <(jq -r '.activeModules[]' config/devops/nexus-devops.json)
+FULL_MODULES=()
+[[ "$PROFILE" == "full" ]] && mapfile -t FULL_MODULES < <(jq -r '(.fullProfileModules // [])[]' config/devops/nexus-devops.json)
 DEPLOY_ARGS=()
 for module in "${MODULES[@]}"; do DEPLOY_ARGS+=(-d "$module"); done
 # A Case assignment rule cannot reference a queue created in the same deployment, so queues (and the
@@ -92,9 +98,47 @@ fi
 sf_json project deploy start -o "$ALIAS" "${DEPLOY_ARGS[@]}" --wait 30 \
     | jq -r '"    \(.result.numberComponentsDeployed) components deployed"'
 
+# Full-profile modules deploy after the active modules, in stages: OmniStudio validates references at deploy
+# time, so a Data Mapper cannot be created with the fields it maps, nor an Integration Procedure with the Data
+# Mapper or Apex class it calls. Each stage is activated before the next (deployed components can arrive
+# inactive; activation through the data API matches the designers' Activate button).
+activate_omnistudio() {
+    local body object id
+    body=$(mktemp)
+    echo '{"IsActive":true}' > "$body"
+    for spec in "OmniDataTransform:" "OmniProcess: AND IsIntegrationProcedure = true" "OmniUiCard:"; do
+        object="${spec%%:*}"
+        for id in $(sf_json data query -o "$ALIAS" -q "SELECT Id FROM $object WHERE IsActive = false${spec#*:}" \
+            | jq -r '.result.records[].Id'); do
+            sf api request rest "/services/data/v62.0/sobjects/$object/$id" -o "$ALIAS" --method PATCH \
+                --body "@$body" >/dev/null
+            echo "    Activated $object $id"
+        done
+    done
+}
+for module in "${FULL_MODULES[@]}"; do
+    step "Deploying $module (full profile)"
+    for stage in "classes omniDataTransforms" "omniIntegrationProcedures" ""; do
+        STAGE_ARGS=()
+        if [[ -z "$stage" ]]; then
+            STAGE_ARGS=(-d "$module")
+        else
+            for type_dir in $stage; do
+                while IFS= read -r dir; do STAGE_ARGS+=(-d "$dir"); done < <(find "$module" -type d -name "$type_dir")
+            done
+        fi
+        [[ ${#STAGE_ARGS[@]} -eq 0 ]] && continue
+        sf_json project deploy start -o "$ALIAS" "${STAGE_ARGS[@]}" --wait 30 \
+            | jq -r --arg s "${stage:-remaining metadata}" '"    \($s): \(.result.numberComponentsDeployed) components deployed"'
+        activate_omnistudio
+    done
+done
+
 step "Assigning admin permission sets"
 ADMIN_ID=$(sf_json org display user -o "$ALIAS" | jq -r '.result.id')
-for permset in PS_Nexus_Admin PS_Sales_Admin LoggerAdmin PS_CapEx_Submitter PS_CapEx_Admin; do
+PERMSETS=(PS_Nexus_Admin PS_Sales_Admin LoggerAdmin PS_CapEx_Submitter PS_CapEx_Admin)
+[[ "$PROFILE" == "full" ]] && PERMSETS+=(PS_Customer360_User)
+for permset in "${PERMSETS[@]}"; do
     if [[ -z "$(query_id "SELECT Id FROM PermissionSetAssignment WHERE AssigneeId = '$ADMIN_ID' AND PermissionSet.Name = '$permset'")" ]]; then
         sf_json org assign permset -o "$ALIAS" -n "$permset" >/dev/null
     fi
@@ -172,7 +216,7 @@ sf_json apex run -o "$ALIAS" -f scripts/org-init/seed-capex.apex \
 
 if [[ "$SKIP_TESTS" == false ]]; then
     step "Running Nexus Core Apex tests (coverage gate)"
-    scripts/devops/run-apex-tests.sh --target-org "$ALIAS" --output-dir "test-results/$ALIAS"
+    scripts/devops/run-apex-tests.sh --target-org "$ALIAS" --profile "$PROFILE" --output-dir "test-results/$ALIAS"
 fi
 
 step "Done in $(( $(date +%s) - START ))s"
@@ -180,3 +224,4 @@ echo "    Admin Cockpit: sf org open -o $ALIAS -p lightning/n/Nexus_Admin_Cockpi
 echo "    Sales app:     sf org open -o $ALIAS -p lightning/app/c__Nexus_Sales"
 echo "    Service app:   sf org open -o $ALIAS -p lightning/app/c__Nexus_Service"
 echo "    Operations:    sf org open -o $ALIAS -p lightning/app/c__Nexus_Operations"
+[[ "$PROFILE" == "full" ]] && echo "    Customer 360:  sf org open -o $ALIAS -p lightning/app/c__Nexus_Customer_360"

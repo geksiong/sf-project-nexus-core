@@ -48,6 +48,16 @@ function loadConfig() {
     return readJson('config/devops/nexus-devops.json');
 }
 
+/**
+ * Modules for a profile: "headless" (CI scratch org) = activeModules; "full" adds fullProfileModules
+ * (OmniStudio, Experience Cloud, ...). Static gates audit every module in either profile.
+ */
+function profileModules(config, profile = 'headless') {
+    return profile === 'full'
+        ? [...config.activeModules, ...(config.fullProfileModules || [])]
+        : [...config.activeModules];
+}
+
 function loadProject() {
     return readJson('sfdx-project.json');
 }
@@ -221,6 +231,12 @@ function extractReferences(relativePath) {
             addToken(m[1].replace(/-([a-z0-9])/g, (_, c) => c.toUpperCase()));
         }
     } else if (relativePath.endsWith('.xml')) {
+        // OmniStudio property sets are JSON inside XML: Data Mapper bundles, Apex remote classes, IP methods.
+        for (const m of text.matchAll(
+            /&quot;(?:bundle|remoteClass|ipMethod)&quot;\s*:\s*&quot;([A-Za-z0-9_]+)&quot;/g
+        )) {
+            addToken(m[1]);
+        }
         for (const m of text.matchAll(/>([^<>]+)</g)) {
             const value = m[1].trim();
             if (!value || value.length > 200) continue;
@@ -238,6 +254,7 @@ module.exports = {
     ROOT,
     TYPE_DIRS,
     loadConfig,
+    profileModules,
     loadProject,
     loadModules,
     loadForceIgnore,

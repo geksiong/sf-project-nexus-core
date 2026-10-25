@@ -13,7 +13,9 @@
  *   unreferenced-apex           non-test Apex classes referenced by nothing and not a platform entry point
  *   unreferenced-widget         HXL UiWidgetBundles bound by no Custom Lightning Type renderer
  *   unreferenced-clt            Custom Lightning Types referenced by no MCP resource or other type
- *   unreferenced-vip            OmniStudio Integration Procedures (VIPs) referenced by nothing
+ *   unreferenced-vip            OmniStudio Integration Procedures (VIPs, by Type_SubType) referenced by nothing
+ *   unreferenced-datamapper     OmniStudio Data Mappers used by no Integration Procedure or FlexCard
+ *   unreferenced-flexcard       OmniStudio FlexCards placed on no Lightning page or parent card
  *   facts-selector-exposure     @AuraEnabled / @InvocableMethod / @RestResource classes calling a *FactsSelector
  *                               directly (system-mode facts must stay inside services, AGENTS.md 2.1)
  *
@@ -29,7 +31,8 @@ const FLS_EXEMPT_TYPES = new Set(['MasterDetail', 'Summary', 'AutoNumber']);
 
 function main() {
     const config = repo.loadConfig();
-    const files = config.activeModules.flatMap((dir) => repo.listFiles(dir));
+    const modules = repo.profileModules(config, 'full');
+    const files = modules.flatMap((dir) => repo.listFiles(dir));
     const text = new Map(files.map((f) => [f, repo.readText(f)]));
     const byType = (dir, suffix) =>
         files.filter((f) => repo.metadataKey(f)?.startsWith(`${dir}/`) && f.endsWith(suffix));
@@ -144,10 +147,27 @@ function main() {
         if (!referencedOutside(name, [dir]))
             report('unreferenced-clt', name, 'No MCP resource or other type references this type');
     }
-    for (const file of byType('omniIntegrationProcedures', '-meta.xml')) {
-        const name = stem(file, '.oip-meta.xml');
-        if (!referencedOutside(name, [file]))
-            report('unreferenced-vip', name, 'Integration Procedure called by no FlexCard, OmniScript or Apex');
+    // OmniStudio components are referenced by name (Type_SubType for IPs), not by versioned unique name.
+    const omniName = (file) => {
+        const xml = text.get(file);
+        // Last match: element-level <type>/<name> tags precede the component's own (alphabetical order).
+        const tag = (t) => [...xml.matchAll(new RegExp(`<${t}>([^<]+)</${t}>`, 'g'))].pop()?.[1];
+        return tag('type') && tag('subType') ? `${tag('type')}_${tag('subType')}` : tag('name');
+    };
+    const omniChecks = [
+        [
+            'omniIntegrationProcedures',
+            'unreferenced-vip',
+            'Integration Procedure called by no FlexCard, OmniScript or Apex'
+        ],
+        ['omniDataTransforms', 'unreferenced-datamapper', 'Data Mapper used by no Integration Procedure or FlexCard'],
+        ['omniUiCard', 'unreferenced-flexcard', 'FlexCard placed on no Lightning page or parent card']
+    ];
+    for (const [dir, check, detail] of omniChecks) {
+        for (const file of byType(dir, '-meta.xml')) {
+            const name = omniName(file);
+            if (!referencedOutside(name, [file])) report(check, name, detail);
+        }
     }
 
     // --- Report
@@ -155,7 +175,7 @@ function main() {
     const blocking = findings.filter((f) => !allowed.has(`${f.check}|${f.item}`));
     const accepted = findings.filter((f) => allowed.has(`${f.check}|${f.item}`));
 
-    console.log(`Audited ${files.length} files in: ${config.activeModules.join(', ')}`);
+    console.log(`Audited ${files.length} files in: ${modules.join(', ')}`);
     for (const f of accepted) {
         const reason = config.allowlist.find((a) => a.check === f.check && a.item === f.item).reason;
         console.log(`ALLOW ${f.check}: ${f.item} - ${reason}`);
