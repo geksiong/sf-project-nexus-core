@@ -143,33 +143,84 @@ public with sharing class OpportunityService {
 ```
 
 ### 2.5 Service Orchestration (`CaseEscalationService.cls`)
+The service reads the cases it acts on through a data-access selector (user mode), resolves routing configuration
+(queue, team role) through a facts selector (system mode, so automated and agent-triggered escalations behave the
+same as manual ones), fails clearly when that configuration is missing, and performs DML in user mode:
+
 ```apex
 public with sharing class CaseEscalationService {
-    public static void escalateCases(Set<Id> caseIds, String escalationReason) {
+    public class EscalationConfigException extends Exception {}
+
+    @TestVisible
+    private static final String ESCALATION_QUEUE = 'Tier_2_Technical_Escalations';
+    @TestVisible
+    private static final String SME_TEAM_ROLE = 'Technical SME';
+
+    public static void escalateCases(Set<Id> caseIds, String escalationReason, Id smeUserId) {
         if (caseIds == null || caseIds.isEmpty()) return;
 
-        List<Case> casesToEscalate = CasesSelector.newInstance().selectById(caseIds);
-        Group escalationQueue = [SELECT Id FROM Group WHERE Type = 'Queue' AND DeveloperName = 'Tier_2_Technical_Escalations' WITH USER_MODE LIMIT 1];
-        CaseTeamRole smeRole = [SELECT Id FROM CaseTeamRole WHERE Name = 'Technical SME' WITH USER_MODE LIMIT 1];
-        Id defaultSmeUserId = UserInfo.getUserId();
+        ServiceDeskFactsSelector facts = ServiceDeskFactsSelector.newInstance();
+        Id queueId = facts.selectQueueId(ESCALATION_QUEUE);
+        Id smeRoleId = facts.selectCaseTeamRoleId(SME_TEAM_ROLE);
+        if (queueId == null || smeRoleId == null) {
+            throw new EscalationConfigException(
+                'Escalation is not configured: queue ' + ESCALATION_QUEUE + ' and Case Team Role ' +
+                SME_TEAM_ROLE + ' must exist.'
+            );
+        }
 
+        List<Case> casesToEscalate = CasesSelector.newInstance().selectById(caseIds);
+        List<CaseComment> reasons = new List<CaseComment>();
         List<CaseTeamMember> teamMembers = new List<CaseTeamMember>();
         for (Case c : casesToEscalate) {
             c.Priority = 'Critical';
             c.Status = 'Escalated';
-            c.OwnerId = escalationQueue.Id;
-
-            teamMembers.add(new CaseTeamMember(
-                ParentId = c.Id,
-                MemberId = defaultSmeUserId,
-                TeamRoleId = smeRole.Id
-            ));
+            c.OwnerId = queueId;
+            reasons.add(new CaseComment(ParentId = c.Id, CommentBody = 'Escalated: ' + escalationReason));
+            if (smeUserId != null) {
+                teamMembers.add(new CaseTeamMember(ParentId = c.Id, MemberId = smeUserId, TeamRoleId = smeRoleId));
+            }
         }
 
         update as user casesToEscalate;
+        insert as user reasons;
         if (!teamMembers.isEmpty()) {
             insert as user teamMembers;
         }
+    }
+}
+```
+
+The routing facts follow the 2.3 contract (narrow question, Id answer, `without sharing`, `WITH SYSTEM_MODE`):
+
+```apex
+public virtual without sharing class ServiceDeskFactsSelector {
+    @TestVisible
+    private static ServiceDeskFactsSelector instance;
+
+    public static ServiceDeskFactsSelector newInstance() {
+        if (instance == null) {
+            instance = new ServiceDeskFactsSelector();
+        }
+        return instance;
+    }
+
+    /** Queue Id by developer name, or null when the queue does not exist. */
+    public virtual Id selectQueueId(String developerName) {
+        for (Group queue : [
+            SELECT Id FROM Group WHERE Type = 'Queue' AND DeveloperName = :developerName WITH SYSTEM_MODE LIMIT 1
+        ]) {
+            return queue.Id;
+        }
+        return null;
+    }
+
+    /** Case Team Role Id by name, or null when the role does not exist. */
+    public virtual Id selectCaseTeamRoleId(String roleName) {
+        for (CaseTeamRole role : [SELECT Id FROM CaseTeamRole WHERE Name = :roleName WITH SYSTEM_MODE LIMIT 1]) {
+            return role.Id;
+        }
+        return null;
     }
 }
 ```
