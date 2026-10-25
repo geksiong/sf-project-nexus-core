@@ -135,6 +135,50 @@ asynchronously ([ADR 0002](docs/adr/0002-decoupling-via-platform-events.md),
 > references. The admin raises requests and the generated Sales Manager approves them; the setup script seeds five
 > requests (`scripts/org-init/seed-capex.apex`), two of them approved and posted through the real event pipeline.
 
+## Service 360 with OmniStudio (Phase 5)
+
+Needs the **full** org shape (OmniStudio standard runtime, no managed package):
+
+```bash
+scripts/org-init/setup-scratch-headless.sh --profile full --alias nexus-full --dev-hub DevHubGS
+sf org open -o nexus-full -p lightning/app/c__Nexus_Customer_360     # open any Account
+```
+
+`FC_CustomerHeader` (FlexCard) → `VIP_Customer360` (Integration Procedure) → `DMCustomer360Extract` (Data Mapper)
+plus `Customer360Service` (Apex remote action). The FlexCard runs no SOQL: all data comes through the Integration
+Procedure, and the Data Mapper enforces field-level security.
+
+| Component (`modules/20-omnistudio/customer-360`)                 | Purpose                                                                                                                   |
+| ---------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| `DMCustomer360Extract` (Extract Data Mapper)                     | Account, up to 50 open opportunities and 50 open cases for an `AccountId`                                                 |
+| `VIP_Customer360` (Integration Procedure, input `AccountId`)     | `LogRequest` (Nebula `CallableLogger`) → `GetCustomerData` → `SummarizeCustomer` → `ReturnCustomer360`                    |
+| `Customer360Service` (`System.Callable`, action `summarize`)     | Health: **At Risk** (credit hold, escalations, SLA violations), **Watch** (high priority, pending discounts), **Healthy** |
+| `FC_CustomerHeader` (FlexCard) on **Nexus Account Customer 360** | Account header with health and key indicators (`runtime_omnistudio:flexcard`, `flexcardName`)                             |
+| `PS_Customer360_User`, **Nexus Customer 360** app                | App, Apex access for the remote actions; data access stays with the user's other permission sets                          |
+
+Response shape: `{account: {...}, opportunities: [...], cases: [...], summary: {health, healthVariant, healthReasons,
+creditHold, openOpportunities, openPipelineAmount, pendingDiscountApprovals, openCases, highPriorityCases,
+escalatedCases, slaViolations}}`.
+
+### Click-through checklist (runtime verification, KI-025)
+
+The components deploy, activate and round-trip, and `Customer360Service` is unit-tested, but an Integration
+Procedure cannot be executed and a FlexCard cannot be rendered from the CLI. In a full-profile org:
+
+1. **App Launcher → OmniStudio → Integration Procedures → `VIP_Customer360` → Preview** with
+   `{"AccountId": "<Globex Retail Group Id>"}`. Expect `account.Name = "Globex Retail Group"`, one open opportunity,
+   one open case (Escalated, High) and `summary.health = "At Risk"` with reasons "Account is on credit hold; 1
+   escalated case(s); 1 high-priority case(s)".
+2. In the Preview debug output, confirm `GetCustomerData` returned only open records (the Data Mapper filters
+   `IsClosed = 'false'`; `Customer360Service` skips closed records either way).
+3. **Nexus Customer 360** app → open each seeded account and check the header renders. Expected health:
+   Globex Retail Group **At Risk**, Acme Global Manufacturing **Watch** (one High-priority case), Apex Healthcare
+   Solutions and Nexus Global Channel Partners **Healthy**.
+4. **Logger Console → Log Entries**: an INFO entry "VIP_Customer360 requested" related to the account.
+5. As a user without `PS_Customer360_User`, the header shows an error instead of data (no Apex access).
+
+Report anything that differs; fixes go in a follow-up.
+
 ## Quality Gates & CI (Phase 2)
 
 | Command                                                       | Gate                                                                                                                           |

@@ -20,6 +20,9 @@
     },
     "omniChannelSettings": {
       "enableOmniChannel": true
+    },
+    "omniStudioSettings": {
+      "enableOmniStudioMetadata": true
     }
   }
 }

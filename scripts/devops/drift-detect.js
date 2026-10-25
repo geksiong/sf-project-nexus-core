@@ -11,7 +11,7 @@
  * server adds or omits), so XML is compared semantically: every element in source must exist in the
  * org with the same value. Types listed in NOISY_TYPES are reported as warnings only.
  *
- * Usage: node scripts/devops/drift-detect.js --target-org <alias> [--report drift-report.md]
+ * Usage: node scripts/devops/drift-detect.js --target-org <alias> [--profile headless|full] [--report drift-report.md]
  * Exit codes: 0 no drift, 1 drift found, 2 usage / retrieval error.
  */
 const fs = require('node:fs');
@@ -34,7 +34,12 @@ function parseArgs() {
         console.error('Usage: drift-detect.js --target-org <alias> [--report drift-report.md]');
         process.exit(2);
     }
-    return { targetOrg, reportFile: get('--report'), keep: args.includes('--keep') };
+    return {
+        targetOrg,
+        reportFile: get('--report'),
+        keep: args.includes('--keep'),
+        profile: get('--profile') || 'headless'
+    };
 }
 
 function sf(args, cwd) {
@@ -128,8 +133,9 @@ function differs(file, sourceContent, orgContent) {
 }
 
 function main() {
-    const { targetOrg, reportFile, keep } = parseArgs();
+    const { targetOrg, reportFile, keep, profile } = parseArgs();
     const config = repo.loadConfig();
+    const modules = repo.profileModules(config, profile);
     const project = repo.loadProject();
     const work = fs.mkdtempSync(path.join(os.tmpdir(), 'nexus-drift-'));
     let exitCode = 2;
@@ -137,7 +143,7 @@ function main() {
     try {
         // 1. Manifest of everything in the active modules (respects .forceignore).
         const manifestArgs = ['project', 'generate', 'manifest', '--output-dir', work, '--name', 'package.xml'];
-        config.activeModules.forEach((dir) => manifestArgs.push('--source-dir', dir));
+        modules.forEach((dir) => manifestArgs.push('--source-dir', dir));
         sf(manifestArgs, repo.ROOT);
 
         // 2. Retrieve into a throwaway single-directory project.
@@ -173,7 +179,7 @@ function main() {
         // 4. Compare.
         const drift = [];
         let compared = 0;
-        for (const file of config.activeModules.flatMap((dir) => repo.listFiles(dir))) {
+        for (const file of modules.flatMap((dir) => repo.listFiles(dir))) {
             const key = repo.metadataKey(file);
             if (!key || file.includes('/__tests__/') || file.endsWith('.md')) continue;
             compared++;
@@ -191,7 +197,7 @@ function main() {
         const lines = [
             `# Drift report: ${targetOrg}`,
             '',
-            `Compared ${compared} source files from ${config.activeModules.join(', ')} with the org (${new Date().toISOString()}).`,
+            `Compared ${compared} source files from ${modules.join(', ')} with the org (${new Date().toISOString()}).`,
             ''
         ];
         if (!drift.length) lines.push('No drift detected.');

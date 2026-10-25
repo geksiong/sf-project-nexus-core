@@ -49,7 +49,7 @@ sf apex run -f scripts/org-init/seed-capex.apex          # CapEx requests via th
 scripts/devops/run-apex-tests.sh --target-org nexus-dev
 ```
 
-Active modules (deployed, audited, tested) are listed in `config/devops/nexus-devops.json` `activeModules`; add a module there when its phase starts. Later-phase scaffolding inside an active module that does not deploy yet is listed in `.forceignore`; remove those entries as each phase is implemented.
+Active modules (deployed, audited, tested) are listed in `config/devops/nexus-devops.json` `activeModules`; add a module there when its phase starts. Modules that need the full org shape (OmniStudio, Experience Cloud, CRM Analytics) go in `fullProfileModules`: the static gates audit them, but they deploy and test only with `--profile full` (`setup-scratch-headless.sh`, `run-apex-tests.sh`, `drift-detect.js`), not in CI Gate 3. Later-phase scaffolding inside an active module that does not deploy yet is listed in `.forceignore`; remove those entries as each phase is implemented.
 
 ### 1.1 Quality Gates (run before every commit / PR)
 
@@ -139,6 +139,14 @@ public with sharing class ActionName {
 - **Aura Runtime (Partner Central):** Use for authenticated B2B partner portals (`aura-partner-central/`). Metadata format is `ExperienceBundle`. Standard record detail layouts, Deal Registration flows, and Partner Community role sharing.
 
 ---
+
+## 4.1 OmniStudio (Standard Runtime)
+
+- Core OmniStudio objects only (no managed package). Orgs need `OmniStudioSettings.enableOmniStudioMetadata` (irreversible; in `project-scratch-def-full.json`). Component names: letters, digits and underscores only.
+- Source formats: Data Mappers `omniDataTransforms/<Name>_<version>.rpt-meta.xml`, Integration Procedures `omniIntegrationProcedures/<Type>_<SubType>_<Language>_<version>.oip-meta.xml`, FlexCards `omniUiCard/<Name>_<Author>_<version>.ouc-meta.xml`. Step and card configuration is JSON in `propertySetConfig` / `dataSourceConfig`.
+- FlexCards read data only through Integration Procedures (`dataSource.type = "IntegrationProcedures"`); Integration Procedures read through Data Mappers with `fieldLevelSecurityEnabled = true`; logic goes in a `System.Callable` Apex remote action (`Customer360Service`); log with Nebula `CallableLogger` steps.
+- OmniStudio validates references at deploy time: deploy Data Mappers after the fields they map and Integration Procedures after their Data Mappers and Apex. `setup-scratch-headless.sh --profile full` deploys full-profile modules in stages (classes + Data Mappers → Integration Procedures → rest) and activates each stage (deployed components can arrive inactive). Place FlexCards with `runtime_omnistudio:flexcard` (`flexcardName`).
+- There is no Apex or REST API to execute an Integration Procedure in core runtime: unit-test the Apex remote actions and verify the procedure in the designer Preview (README, Phase 5 checklist).
 
 ## 5. Agentforce, MCP & HXL UI Contracts
 

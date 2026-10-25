@@ -32,6 +32,11 @@ _Constraint_ = platform limitation with a workaround in place; _Verify_ = suspec
 | KI-022 | CapEx        | Constraint | ERP integration is simulated; named credential is the legacy format     |
 | KI-023 | CapEx        | Open       | CapEx status can be set directly by administrators                      |
 | KI-024 | CapEx        | Verify     | One unreproduced posting-test failure on the first run after deploy     |
+| KI-025 | OmniStudio   | Verify     | Phase 5 runtime (IP execution, FlexCard rendering) not exercised         |
+| KI-026 | OmniStudio   | Constraint | No Apex/REST entry point to run an Integration Procedure in core runtime |
+| KI-027 | OmniStudio   | Constraint | Components deploy inactive; API-activated FlexCards generate no LWC      |
+| KI-028 | OmniStudio   | Constraint | `enableOmniStudioMetadata` is irreversible and restricts names           |
+| KI-029 | DevOps       | Open       | Full-profile modules are not deployed or tested in CI                    |
 
 ---
 
@@ -229,3 +234,47 @@ _Constraint_ = platform limitation with a workaround in place; _Verify_ = suspec
   Pending with no error, as if the posting job never ran. Every later run passed (five runs, including one with the
   admin's CapEx permission sets removed), so it is not a permission dependency. A fresh-org bootstrap (first run after deploy) also passed.
 - **Resolution:** watch CI. If it recurs, capture the debug log of the event delivery and the job.
+
+## Service 360 / OmniStudio (Phase 5)
+
+### KI-025 Phase 5 runtime not exercised — _Verify_
+
+- **What happens:** `DMCustomer360Extract`, `VIP_Customer360` and `FC_CustomerHeader` deploy, activate and
+  round-trip without drift, and `Customer360Service` is unit-tested, but the Integration Procedure was never executed
+  and the FlexCard never rendered (no browser, no runtime API: KI-026). The property-set JSON was hand-authored and
+  the Data Mapper's literal filter (`IsClosed = 'false'`) syntax is unconfirmed.
+- **Resolution:** run the README "Click-through checklist" (Phase 5) and fix what differs.
+
+### KI-026 No Apex/REST entry point to run an Integration Procedure in core runtime — _Constraint_
+
+- **What happens:** core runtime has no `IntegrationProcedureService`-style Apex class. The REST action
+  `executeIntegrationProcedure` only lists procedures with an Agentforce signature, and setting
+  `IntegrationProcedureInput`/`Output` through the data API failed with `UNKNOWN_EXCEPTION`.
+- **Impact:** procedures cannot be integration-tested from Apex or CI. **Phase 8** (Agentforce, MCP) will need the
+  signature: configure it in the designer and retrieve the metadata.
+
+### KI-027 Components deploy inactive; API-activated FlexCards generate no LWC — _Constraint_
+
+- **What happens:** OmniStudio validates references at deploy time, so a Data Mapper cannot be deployed in the same
+  pass as the fields it maps, nor an Integration Procedure with the Data Mapper or Apex class it calls (both fail with
+  an unhelpful `UNKNOWN_EXCEPTION`). `--profile full` therefore deploys full-profile modules after the active modules,
+  in stages (classes + Data Mappers → Integration Procedures → the rest), activating after each stage. A newly
+  deployed Data Mapper also arrives inactive although its source says active. The setup script
+  activates Data Mappers, Integration Procedures and FlexCards through the data API. Activating a FlexCard that way
+  does not generate the `cf<Name>` Lightning web component the designer's Activate button creates, so the page uses
+  the standard runtime component `runtime_omnistudio:flexcard` with `flexcardName`. FlexCards created through the
+  API get the default author "Vlocity" in their unique name (`FC_CustomerHeader_Vlocity_1`).
+
+### KI-028 `enableOmniStudioMetadata` is irreversible and restricts names — _Constraint_
+
+- **What happens:** OmniStudio components are invisible to the Metadata API until
+  `OmniStudioSettings.enableOmniStudioMetadata` is on (set in `project-scratch-def-full.json`). Once on it cannot be
+  turned off, and component names must not contain spaces or special characters. The CLI cannot retrieve the
+  `OmniStudio` settings at API 62–68 ("unknown"), although deploying them works.
+- **Impact:** enabling it in a sandbox or production org is a one-way change: plan it.
+
+### KI-029 Full-profile modules are not deployed or tested in CI — _Open_
+
+- **What happens:** CI Gate 3 builds the headless org, which has no OmniStudio. `modules/20-omnistudio` (and later
+  full-profile modules) get the static gates only; deploy, Apex tests and drift run manually with `--profile full`.
+- **Resolution:** a second CI job on the full definition (manual dispatch or nightly, to save scratch-org quota).

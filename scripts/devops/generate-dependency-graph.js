@@ -75,7 +75,11 @@ function main() {
         const reachableThroughUsed = new Set();
         for (const u of used) (byName.get(u)?.dependencies || []).forEach((d) => reachableThroughUsed.add(d));
         for (const dep of mod.dependencies) {
-            if (!used.has(dep) && !reachableThroughUsed.has(dep) && config.activeModules.includes(mod.path)) {
+            if (
+                !used.has(dep) &&
+                !reachableThroughUsed.has(dep) &&
+                repo.profileModules(config, 'full').includes(mod.path)
+            ) {
                 warnings.push(`[unused] ${mod.name} declares ${dep} but no source references it`);
             }
         }
