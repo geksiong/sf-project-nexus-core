@@ -1,0 +1,11 @@
+{
+  "title": "Hotel Card Widget",
+  "type": "object",
+  "properties": {
+    "title": { "type": "string" },
+    "price": { "type": "number" },
+    "tier": { "type": "string" },
+    "bookingCode": { "type": "string" }
+  },
+  "required": ["title", "price", "tier", "bookingCode"]
+}

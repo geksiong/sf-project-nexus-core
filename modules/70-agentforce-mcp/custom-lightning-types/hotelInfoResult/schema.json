@@ -1,0 +1,10 @@
+{
+  "title": "hotelInfoResult",
+  "type": "object",
+  "properties": {
+    "actionName": { "type": "string" },
+    "isSuccess": { "type": "boolean" },
+    "outputValues": { "$ref": "../hotelInfoOutputValues/schema.json" }
+  },
+  "required": ["actionName", "isSuccess", "outputValues"]
+}

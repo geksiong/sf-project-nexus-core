@@ -1,0 +1,11 @@
+{
+  "title": "hotelInfoOutputValues",
+  "type": "object",
+  "properties": {
+    "hotelName": { "type": "string" },
+    "nightlyRate": { "type": "number" },
+    "roomTier": { "type": "string" },
+    "confirmationId": { "type": "string" }
+  },
+  "required": ["hotelName", "nightlyRate", "roomTier", "confirmationId"]
+}

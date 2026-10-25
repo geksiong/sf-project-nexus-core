@@ -1,0 +1,37 @@
+{
+  "records": [
+    {
+      "attributes": {
+        "type": "Account",
+        "referenceId": "AccRef1"
+      },
+      "Name": "Acme Global Manufacturing",
+      "Industry": "Manufacturing",
+      "Type": "Customer - Direct",
+      "BillingCity": "Chicago",
+      "BillingCountry": "USA"
+    },
+    {
+      "attributes": {
+        "type": "Account",
+        "referenceId": "AccRef2"
+      },
+      "Name": "Apex Healthcare Solutions",
+      "Industry": "Healthcare",
+      "Type": "Customer - Direct",
+      "BillingCity": "Boston",
+      "BillingCountry": "USA"
+    },
+    {
+      "attributes": {
+        "type": "Account",
+        "referenceId": "AccRef3"
+      },
+      "Name": "Nexus Global Channel Partners",
+      "Industry": "Technology",
+      "Type": "Channel Partner / Reseller",
+      "BillingCity": "San Francisco",
+      "BillingCountry": "USA"
+    }
+  ]
+}

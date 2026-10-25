@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Dashboard xmlns="http://soap.sforce.com/2006/04/metadata">
+    <backgroundEndColor>#FFFFFF</backgroundEndColor>
+    <backgroundStartColor>#FFFFFF</backgroundStartColor>
+    <dashboardGridComponents>
+        <colSpan>12</colSpan>
+        <columnIndex>0</columnIndex>
+        <dashboardComponent>
+            <autoselectColumnsFromReport>true</autoselectColumnsFromReport>
+            <componentType>Bar</componentType>
+            <header>Departmental Spend vs. Operational Escalations</header>
+            <report>CapEx_Reports/Departmental_Health_Joined_Report</report>
+        </dashboardComponent>
+        <rowIndex>0</rowIndex>
+        <rowSpan>8</rowSpan>
+    </dashboardGridComponents>
+    <isGridLayout>true</isGridLayout>
+    <title>CapEx Executive &amp; Operational Console</title>
+</Dashboard>

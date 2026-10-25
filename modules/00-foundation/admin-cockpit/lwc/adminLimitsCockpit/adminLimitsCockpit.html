@@ -1,0 +1,47 @@
+<template>
+    <lightning-card title="Nexus Core - Admin & Limits Cockpit" icon-name="standard:dashboard">
+        <div class="slds-p-around_medium">
+            <template lwc:if={isLoading}>
+                <lightning-spinner alternative-text="Loading Telemetry..."></lightning-spinner>
+            </template>
+            <template lwc:if={snapshot}>
+                <h3 class="slds-text-title_bold slds-m-bottom_small">Org Resource Telemetry</h3>
+                <div class="slds-grid slds-wrap slds-gutters slds-m-bottom_large">
+                    <template for:each={snapshot.limits} for:item="lim">
+                        <div key={lim.name} class="slds-col slds-size_1-of-1 slds-medium-size_1-of-2 slds-m-bottom_small">
+                            <div class="slds-box slds-box_x-small">
+                                <div class="slds-grid slds-grid_align-spread slds-m-bottom_xx-small">
+                                    <span class="slds-text-body_regular">{lim.label}</span>
+                                    <lightning-badge label={lim.status} variant={lim.badgeVariant}></lightning-badge>
+                                </div>
+                                <lightning-progress-bar value={lim.percentUsed} size="large" variant={lim.progressVariant}></lightning-progress-bar>
+                                <div class="slds-text-align_right slds-text-color_weak slds-text-body_small slds-m-top_xx-small">
+                                    {lim.current} / {lim.max} ({lim.formattedPercent}%)
+                                </div>
+                            </div>
+                        </div>
+                    </template>
+                </div>
+                <h3 class="slds-text-title_bold slds-m-bottom_small">Recent Exception Feed (Nebula Logger)</h3>
+                <table class="slds-table slds-table_cell-buffer slds-table_bordered">
+                    <thead>
+                        <tr class="slds-line-height_reset">
+                            <th scope="col"><div class="slds-truncate" title="Severity">Severity</div></th>
+                            <th scope="col"><div class="slds-truncate" title="Message">Message</div></th>
+                            <th scope="col"><div class="slds-truncate" title="Timestamp">Timestamp</div></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <template for:each={snapshot.recentErrors} for:item="err">
+                            <tr key={err.logId}>
+                                <td><lightning-badge label={err.severity} variant={err.badgeVariant}></lightning-badge></td>
+                                <td><div class="slds-truncate" title={err.message}>{err.message}</div></td>
+                                <td><div class="slds-truncate" title={err.loggedTime}>{err.loggedTime}</div></td>
+                            </tr>
+                        </template>
+                    </tbody>
+                </table>
+            </template>
+        </div>
+    </lightning-card>
+</template>

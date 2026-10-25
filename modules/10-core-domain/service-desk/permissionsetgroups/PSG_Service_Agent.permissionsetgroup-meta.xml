@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<PermissionSetGroup xmlns="http://soap.sforce.com/2006/04/metadata">
+    <description>Bundles operational permissions for frontline service agents handling omni-channel cases and incident SLAs.</description>
+    <hasActivationRequired>false</hasActivationRequired>
+    <label>Service Agent PSG</label>
+    <permissionSets>PS_Service_Agent</permissionSets>
+</PermissionSetGroup>

@@ -1,0 +1,10 @@
+{
+  "type": "widget",
+  "widgetName": "c__hotelCard",
+  "attributes": {
+    "title": "{!$payload.hotelDetails.hotelName}",
+    "price": "{!$payload.hotelDetails.nightlyRate}",
+    "tier": "{!$payload.hotelDetails.roomTier}",
+    "bookingCode": "{!$payload.hotelDetails.confirmationId}"
+  }
+}

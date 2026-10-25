@@ -1,0 +1,22 @@
+{
+  "orgName": "Nexus Core Full Scratch Org",
+  "edition": "Developer",
+  "features": [
+    "EnableSetPasswordInApi",
+    "Entitlements",
+    "OmniStudioDesigner",
+    "OmniStudioRuntime",
+    "Communities",
+    "Sites",
+    "AnalyticsAdminPerms",
+    "DevelopmentWave"
+  ],
+  "settings": {
+    "lightningExperienceSettings": {
+      "enableS1DesktopEnabled": true
+    },
+    "entitlementSettings": {
+      "enableEntitlements": true
+    }
+  }
+}

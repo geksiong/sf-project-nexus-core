@@ -1,0 +1,37 @@
+{
+  "records": [
+    {
+      "attributes": {
+        "type": "Opportunity"
+      },
+      "Name": "Acme Industrial IoT Expansion",
+      "AccountId": "@AccRef1",
+      "StageName": "Proposal/Price Quote",
+      "Amount": 150000.00,
+      "CloseDate": "2026-12-15",
+      "LeadSource": "Partner Referral"
+    },
+    {
+      "attributes": {
+        "type": "Opportunity"
+      },
+      "Name": "Apex Clinic Modernization",
+      "AccountId": "@AccRef2",
+      "StageName": "Closed Won",
+      "Amount": 280000.00,
+      "CloseDate": "2026-10-01",
+      "LeadSource": "Trade Show"
+    },
+    {
+      "attributes": {
+        "type": "Opportunity"
+      },
+      "Name": "Nexus Cloud Partner Onboarding",
+      "AccountId": "@AccRef3",
+      "StageName": "Negotiation/Review",
+      "Amount": 75000.00,
+      "CloseDate": "2026-11-30",
+      "LeadSource": "Direct Referral"
+    }
+  ]
+}

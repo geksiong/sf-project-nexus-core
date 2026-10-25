@@ -1,0 +1,18 @@
+{
+  "name": "hotelCard",
+  "component": "lightning/card",
+  "properties": {
+    "title": "{!$attrs.title}",
+    "iconName": "standard:hotel"
+  },
+  "children": [
+    {
+      "component": "lightning/badge",
+      "properties": { "label": "{!$attrs.tier}" }
+    },
+    {
+      "component": "lightning/formattedNumber",
+      "properties": { "value": "{!$attrs.price}", "formatStyle": "currency", "currencyCode": "USD" }
+    }
+  ]
+}

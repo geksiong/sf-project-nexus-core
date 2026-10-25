@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Report xmlns="http://soap.sforce.com/2006/04/metadata">
+    <block>
+        <blockInfo><blockId>B1</blockId><joinTable>CapEx_Request__c</joinTable></blockInfo>
+        <columns><field>CUST_NAME</field></columns>
+        <columns><aggregateTypes>Sum</aggregateTypes><field>CapEx_Request__c.Total_Amount__c</field></columns>
+        <format>Summary</format>
+        <name>CapEx Pipeline Commitments</name>
+        <reportType>CustomEntity$CapEx_Request__c</reportType>
+        <scope>organization</scope>
+    </block>
+    <block>
+        <blockInfo><blockId>B2</blockId><joinTable>s</joinTable></blockInfo>
+        <columns><field>CASE_NUMBER</field></columns>
+        <columns><field>PRIORITY</field></columns>
+        <format>Summary</format>
+        <name>Operational Service Escalations</name>
+        <reportType>CaseList</reportType>
+        <scope>organization</scope>
+    </block>
+    <chart>
+        <chartSummaries><aggregate>Sum</aggregate><axisBinding>y</axisBinding><column>B1#CapEx_Request__c.Total_Amount__c</column></chartSummaries>
+        <chartType>VerticalColumnGrouped</chartType>
+        <groupingColumn>CapEx_Request__c.Department__c</groupingColumn>
+        <location>CHART_TOP</location>
+        <size>Medium</size>
+        <title>CapEx Spend Velocity vs Escalation Volume</title>
+    </chart>
+    <format>MultiBlock</format>
+    <groupingsDown>
+        <dateGranularity>Day</dateGranularity>
+        <field>CapEx_Request__c.Department__c</field>
+        <sortOrder>Asc</sortOrder>
+    </groupingsDown>
+    <name>Departmental Health Joined Report</name>
+    <reportType>CustomEntity$CapEx_Request__c</reportType>
+    <showDetails>true</showDetails>
+</Report>

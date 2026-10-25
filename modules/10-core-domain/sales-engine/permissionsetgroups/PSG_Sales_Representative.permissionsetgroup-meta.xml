@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<PermissionSetGroup xmlns="http://soap.sforce.com/2006/04/metadata">
+    <description>Bundles operational permissions for sales representatives managing accounts, opportunities, and deal closer flows.</description>
+    <hasActivationRequired>false</hasActivationRequired>
+    <label>Sales Representative PSG</label>
+    <permissionSets>PS_Sales_Rep</permissionSets>
+</PermissionSetGroup>

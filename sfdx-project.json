@@ -1,0 +1,72 @@
+{
+  "packageDirectories": [
+    {
+      "path": "modules/00-foundation",
+      "default": true,
+      "package": "NexusCore-Foundation",
+      "versionName": "ver 1.0",
+      "versionNumber": "1.0.0.NEXT"
+    },
+    {
+      "path": "modules/10-core-domain",
+      "default": false,
+      "package": "NexusCore-CoreDomain",
+      "dependencies": [
+        { "package": "NexusCore-Foundation" }
+      ]
+    },
+    {
+      "path": "modules/20-omnistudio",
+      "default": false,
+      "package": "NexusCore-OmniStudio",
+      "dependencies": [
+        { "package": "NexusCore-CoreDomain" }
+      ]
+    },
+    {
+      "path": "modules/30-experience-cloud",
+      "default": false,
+      "package": "NexusCore-ExperienceCloud",
+      "dependencies": [
+        { "package": "NexusCore-CoreDomain" }
+      ]
+    },
+    {
+      "path": "modules/40-crm-analytics",
+      "default": false,
+      "package": "NexusCore-CRMAnalytics",
+      "dependencies": [
+        { "package": "NexusCore-CoreDomain" }
+      ]
+    },
+    {
+      "path": "modules/50-multi-framework",
+      "default": false,
+      "package": "NexusCore-MultiFramework",
+      "dependencies": [
+        { "package": "NexusCore-CoreDomain" }
+      ]
+    },
+    {
+      "path": "modules/60-hxl-widgets",
+      "default": false,
+      "package": "NexusCore-HXLWidgets",
+      "dependencies": [
+        { "package": "NexusCore-CoreDomain" }
+      ]
+    },
+    {
+      "path": "modules/70-agentforce-mcp",
+      "default": false,
+      "package": "NexusCore-AgentforceMCP",
+      "dependencies": [
+        { "package": "NexusCore-CoreDomain" },
+        { "package": "NexusCore-HXLWidgets" }
+      ]
+    }
+  ],
+  "name": "nexus-core",
+  "namespace": "",
+  "sfdcLoginUrl": "https://login.salesforce.com",
+  "sourceApiVersion": "62.0"
+}

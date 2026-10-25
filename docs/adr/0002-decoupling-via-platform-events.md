@@ -1,0 +1,1 @@
+# ADR 0002: Decouple Ledger Creation via Platform Events
