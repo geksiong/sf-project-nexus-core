@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Escalation_Reason__c</fullName>
+    <description>Why the case was last escalated. Entered in the Escalate Case flow or defaulted by CaseEscalationService (SLA breach / manual status change). Each escalation is also recorded as a private case comment.</description>
+    <label>Escalation Reason</label>
+    <required>false</required>
+    <trackHistory>false</trackHistory>
+    <type>TextArea</type>
+</CustomField>

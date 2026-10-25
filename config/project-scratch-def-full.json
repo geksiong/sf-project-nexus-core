@@ -17,6 +17,9 @@
     },
     "entitlementSettings": {
       "enableEntitlements": true
+    },
+    "omniChannelSettings": {
+      "enableOmniChannel": true
     }
   }
 }

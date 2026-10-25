@@ -15,7 +15,7 @@
 | **Platform contract** | Approval processes, permission sets, user-mode access, Nebula logging | Real users via `System.runAs`, real platform features. | `OpportunityDiscountApprovalTest`, `CloseOpportunityActionTest` |
 
 Apex tests in a scratch org run serially, so total execution time is the sum of every test. Put each rule in the
-cheapest layer that can prove it; the Phase 1 DoD budget is **< 15s** for the whole suite.
+cheapest layer that can prove it; the Phase 1 DoD budget was **< 15s**; with the Phase 3 service desk the whole suite runs in ~35s.
 
 ## 2. Mocking Selectors with `TestStub`
 
@@ -35,6 +35,13 @@ Assert.areEqual(1, facts.callCount('selectAccountIdsOnCreditHold'), 'one bulk qu
 ```
 
 - `Test.createStub()` cannot mock inner classes; stub top-level selectors and services only.
+- Split a service that ends in DML into a pure `plan...` method (`@TestVisible`, returns the records it would write)
+  and a thin method that writes them, so unit tests assert exactly which rows a rule produces
+  (`CaseTeamService.planCaseTeamMembers`, `CaseSlaService.planMilestoneCompletions`).
+- `getFakeId` needs a describe key prefix; some setup objects (e.g. `CaseTeamRole`) have none, so build those Ids from
+  the literal prefix (`'0B7' + ...`).
+- Keep platform engines out of bulk tests unless they are what you are testing: 200 cases on an entitlement add
+  ~30s of milestone processing without exercising more Nexus code.
 - Use `TestDataFactory.getFakeId(SObjectType)` for record Ids, and `old.clone(true)` to build `Trigger.oldMap` / `Trigger.new` pairs.
 - Rules that read a `*FactsSelector` also need one database test running as a user **without** the feature's
   permission sets (see `OpportunityTriggerIntegrationTest.stageGatesApplyToUsersWithoutSalesPermissions`), proving

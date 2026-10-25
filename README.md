@@ -47,7 +47,8 @@ npm test                                       # LWC Jest tests
 ```
 
 The setup script creates the scratch org, installs Nebula Logger, deploys `00-foundation` + `10-core-domain`,
-assigns permissions, creates the Sales Manager persona, seeds `data/`, and runs all Apex tests.
+assigns permissions, configures the service desk, creates the Sales Manager persona, seeds `data/` and the service
+desk cases, and runs all Apex tests.
 
 ### What Phase 1 delivers
 
@@ -74,6 +75,39 @@ assigns permissions, creates the Sales Manager persona, seeds `data/`, and runs 
 
 > Scratch Developer Edition orgs include only 2 Salesforce licenses: the admin user doubles as the Sales Rep persona
 > and reports to the generated _Sam Manager_ user, who approves Tier 1 (and, as fallback, Tier 2) discounts.
+
+## Service Desk (Phase 3)
+
+Open the **Nexus Service** console app (`sf org open -p lightning/app/c__Nexus_Service`). New cases are routed by
+the active Case assignment rule to the **Tier 1 Support** queue and pushed to agents by Omni-Channel (utility bar →
+_Available - Cases_).
+
+| Component (`10-core-domain/service-desk`)                                                             | Purpose                                                                                                |
+| ----------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------ |
+| `CaseTrigger` → `CaseTriggerHandler` → `CaseEscalationService`, `CaseSlaService`, `CaseTeamService`   | Escalation policy, entitlement linking, milestone completion, case team provisioning                   |
+| `CasesSelector` / `ServiceDeskFactsSelector`                                                          | Data access `WITH USER_MODE` / rule facts `WITH SYSTEM_MODE` (queues, roles, entitlements, milestones) |
+| `EscalateCaseAction` + **Escalate Case** screen flow (quick action on the **Nexus Case Record Page**) | Escalate with a reason and optional Technical SME via the uniform invocable result envelope            |
+| **Nexus Standard Support** entitlement process, `First Response` / `Resolution` milestones            | SLA targets by priority (High 1h/8h, Medium 4h/24h, Low 8h/48h); a violation flags `SLA_Breached__c`   |
+| Omni-Channel: `Case_Channel`, `Available_Cases`, `Tier_1_Routing` / `Tier_2_Routing`, two queues      | Most-available push routing; Tier 2 escalations are routed first                                       |
+| `PSG_Service_Agent` (`PS_Service_Agent` + `PS_Omni_Channel_Agent`), **Nexus Service** app             | Access model                                                                                           |
+
+### Service desk rules
+
+- **Escalation** (one policy for every channel: the Escalate Case flow / Agentforce / MCP, an SLA breach, or an agent
+  setting _Status = Escalated_): priority High, owner the **Tier 2 Technical Escalations** queue, `Escalated_On__c`
+  stamped, a default reason when none was given, and the reason recorded as a private case comment.
+- **Case team:** on escalation the previous owner (if a user) joins as _Escalating Agent_ and keeps access; the
+  `Technical_SME__c` user joins as _Technical SME_; when a case becomes High priority the account owner joins as
+  _Account Manager_ (read only).
+- **SLA:** new cases inherit their account's active entitlement; leaving _New_ completes First Response; closing
+  completes Resolution.
+- Rule facts and side effects (comments, team members, milestone completion) run in system mode; they only follow a
+  case change the running user was allowed to make. The escalation itself runs in user mode.
+
+> The admin user also covers the Service Agent persona (2-license limit). The setup script creates the Case Team
+> Roles, grants the _Available - Cases_ presence status (not deployable as permission set metadata at API 62), adds
+> the admin to both queues and seeds entitlements and five sample cases (`scripts/org-init/seed-service-desk.apex`).
+> The Case assignment rule is org-wide: deploying it to a sandbox replaces that org's active Case assignment rule.
 
 ## Quality Gates & CI (Phase 2)
 

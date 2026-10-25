@@ -3,5 +3,6 @@
     <description>Bundles operational permissions for frontline service agents handling omni-channel cases and incident SLAs.</description>
     <hasActivationRequired>false</hasActivationRequired>
     <label>Service Agent PSG</label>
+    <permissionSets>PS_Omni_Channel_Agent</permissionSets>
     <permissionSets>PS_Service_Agent</permissionSets>
 </PermissionSetGroup>
