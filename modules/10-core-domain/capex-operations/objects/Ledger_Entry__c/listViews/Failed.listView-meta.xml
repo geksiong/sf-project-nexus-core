@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ListView xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Failed</fullName>
+    <columns>NAME</columns>
+    <columns>CapEx_Request__c</columns>
+    <columns>Amount__c</columns>
+    <columns>Attempts__c</columns>
+    <columns>Last_Error__c</columns>
+    <filterScope>Everything</filterScope>
+    <filters>
+        <field>Status__c</field>
+        <operation>equals</operation>
+        <value>Failed</value>
+    </filters>
+    <label>Failed Postings</label>
+</ListView>

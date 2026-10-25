@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Role xmlns="http://soap.sforce.com/2006/04/metadata">
+    <caseAccessLevel>Edit</caseAccessLevel>
+    <contactAccessLevel>Edit</contactAccessLevel>
+    <description>Reads approved CapEx via criteria-based sharing (outside sales hierarchy).</description>
+    <mayForecastManagerShare>false</mayForecastManagerShare>
+    <name>Finance Controller</name>
+    <opportunityAccessLevel>Edit</opportunityAccessLevel>
+    <parentRole>Executive_VP</parentRole>
+</Role>

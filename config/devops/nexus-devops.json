@@ -18,11 +18,6 @@
   },
   "allowlist": [
     {
-      "check": "missing-field-permission",
-      "item": "CapEx_Request__c.Department__c",
-      "reason": "Phase 4 (CapEx) scaffolding: PS_CapEx_* permission sets arrive with Demo App 3."
-    },
-    {
       "check": "clt-renderer-binding",
       "item": "modules/70-agentforce-mcp/custom-lightning-types/hotelInfoResult/renderer.json",
       "reason": "Phase 8 scaffolding: renderer binds $payload.hotelDetails but the result schema exposes outputValues. Resolve when the Agentforce contract is implemented."

@@ -94,7 +94,7 @@ sf_json project deploy start -o "$ALIAS" "${DEPLOY_ARGS[@]}" --wait 30 \
 
 step "Assigning admin permission sets"
 ADMIN_ID=$(sf_json org display user -o "$ALIAS" | jq -r '.result.id')
-for permset in PS_Nexus_Admin PS_Sales_Admin LoggerAdmin; do
+for permset in PS_Nexus_Admin PS_Sales_Admin LoggerAdmin PS_CapEx_Submitter PS_CapEx_Admin; do
     if [[ -z "$(query_id "SELECT Id FROM PermissionSetAssignment WHERE AssigneeId = '$ADMIN_ID' AND PermissionSet.Name = '$permset'")" ]]; then
         sf_json org assign permset -o "$ALIAS" -n "$permset" >/dev/null
     fi
@@ -152,6 +152,12 @@ MANAGER_ROLE_ID=$(query_id "SELECT Id FROM UserRole WHERE DeveloperName = 'Sales
 sf_json data update record -o "$ALIAS" -s User -i "$MANAGER_ID" -v "UserRoleId=$MANAGER_ROLE_ID" >/dev/null
 sf_json data update record -o "$ALIAS" -s User -i "$ADMIN_ID" -v "UserRoleId=$REP_ROLE_ID ManagerId=$MANAGER_ID" >/dev/null
 echo "    Admin (Sales Rep persona) now reports to Sales Manager $MANAGER_ID"
+REVIEWER_PS_ID=$(query_id "SELECT Id FROM PermissionSet WHERE Name = 'PS_CapEx_Reviewer'")
+if [[ -z "$(query_id "SELECT Id FROM PermissionSetAssignment WHERE AssigneeId = '$MANAGER_ID' AND PermissionSetId = '$REVIEWER_PS_ID'")" ]]; then
+    sf_json data create record -o "$ALIAS" -s PermissionSetAssignment \
+        -v "AssigneeId=$MANAGER_ID PermissionSetId=$REVIEWER_PS_ID" >/dev/null
+fi
+echo "    Sales Manager approves the admin's CapEx requests (PS_CapEx_Reviewer)"
 
 step "Seeding sample data"
 if [[ -z "$(query_id "SELECT Id FROM Opportunity WHERE Name = 'Acme Industrial IoT Expansion'")" ]]; then
@@ -161,6 +167,8 @@ else
 fi
 sf_json apex run -o "$ALIAS" -f scripts/org-init/seed-service-desk.apex \
     | jq -r '.result.logs' | grep -oE 'USER_DEBUG\|[^|]*\|DEBUG\|.*' | cut -d'|' -f4 | sed 's/^/    Service desk: /'
+sf_json apex run -o "$ALIAS" -f scripts/org-init/seed-capex.apex \
+    | jq -r '.result.logs' | grep -oE 'USER_DEBUG\|[^|]*\|DEBUG\|.*' | cut -d'|' -f4 | sed 's/^/    CapEx: /'
 
 if [[ "$SKIP_TESTS" == false ]]; then
     step "Running Nexus Core Apex tests (coverage gate)"
@@ -171,3 +179,4 @@ step "Done in $(( $(date +%s) - START ))s"
 echo "    Admin Cockpit: sf org open -o $ALIAS -p lightning/n/Nexus_Admin_Cockpit"
 echo "    Sales app:     sf org open -o $ALIAS -p lightning/app/c__Nexus_Sales"
 echo "    Service app:   sf org open -o $ALIAS -p lightning/app/c__Nexus_Service"
+echo "    Operations:    sf org open -o $ALIAS -p lightning/app/c__Nexus_Operations"

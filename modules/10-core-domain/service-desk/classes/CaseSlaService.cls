@@ -42,7 +42,7 @@ public with sharing class CaseSlaService {
     public static void completeMilestones(List<Case> cases, Map<Id, Case> oldMap) {
         List<CaseMilestone> completions = planMilestoneCompletions(cases, oldMap);
         if (!completions.isEmpty()) {
-            ServiceDeskDml.save(Database.update(completions, false, AccessLevel.SYSTEM_MODE), 'Milestone completion');
+            PartialDml.save(Database.update(completions, false, AccessLevel.SYSTEM_MODE), 'Milestone completion');
         }
     }
 

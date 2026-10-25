@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Workflow xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fieldUpdates>
+        <fullName>CapEx_Status_Submitted</fullName>
+        <description>CapEx Approval: submitted for manager review.</description>
+        <field>Status__c</field>
+        <literalValue>Submitted</literalValue>
+        <name>CapEx Status: Submitted</name>
+        <notifyAssignee>false</notifyAssignee>
+        <operation>Literal</operation>
+        <protected>false</protected>
+        <reevaluateOnChange>false</reevaluateOnChange>
+    </fieldUpdates>
+    <fieldUpdates>
+        <fullName>CapEx_Status_Approved</fullName>
+        <description>CapEx Approval: final approval. CapExService publishes CapEx_Approved__e.</description>
+        <field>Status__c</field>
+        <literalValue>Approved</literalValue>
+        <name>CapEx Status: Approved</name>
+        <notifyAssignee>false</notifyAssignee>
+        <operation>Literal</operation>
+        <protected>false</protected>
+        <reevaluateOnChange>false</reevaluateOnChange>
+    </fieldUpdates>
+    <fieldUpdates>
+        <fullName>CapEx_Approved_On</fullName>
+        <description>CapEx Approval: stamp the approval time.</description>
+        <field>Approved_On__c</field>
+        <formula>NOW()</formula>
+        <name>CapEx Approved On</name>
+        <notifyAssignee>false</notifyAssignee>
+        <operation>Formula</operation>
+        <protected>false</protected>
+        <reevaluateOnChange>false</reevaluateOnChange>
+    </fieldUpdates>
+    <fieldUpdates>
+        <fullName>CapEx_Status_Rejected</fullName>
+        <description>CapEx Approval: rejected; the owner may edit and resubmit.</description>
+        <field>Status__c</field>
+        <literalValue>Rejected</literalValue>
+        <name>CapEx Status: Rejected</name>
+        <notifyAssignee>false</notifyAssignee>
+        <operation>Literal</operation>
+        <protected>false</protected>
+        <reevaluateOnChange>false</reevaluateOnChange>
+    </fieldUpdates>
+    <fieldUpdates>
+        <fullName>CapEx_Status_Draft</fullName>
+        <description>CapEx Approval: recalled by the submitter.</description>
+        <field>Status__c</field>
+        <literalValue>Draft</literalValue>
+        <name>CapEx Status: Draft</name>
+        <notifyAssignee>false</notifyAssignee>
+        <operation>Literal</operation>
+        <protected>false</protected>
+        <reevaluateOnChange>false</reevaluateOnChange>
+    </fieldUpdates>
+</Workflow>

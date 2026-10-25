@@ -18,7 +18,7 @@ public with sharing class CaseTeamService {
     public static void provisionCaseTeams(List<Case> cases, Map<Id, Case> oldMap) {
         List<CaseTeamMember> members = planCaseTeamMembers(cases, oldMap);
         if (!members.isEmpty()) {
-            ServiceDeskDml.save(Database.insert(members, false, AccessLevel.SYSTEM_MODE), 'Case team provisioning');
+            PartialDml.save(Database.insert(members, false, AccessLevel.SYSTEM_MODE), 'Case team provisioning');
         } else if (Logger.getBufferSize() > 0) {
             Logger.saveLog();
         }

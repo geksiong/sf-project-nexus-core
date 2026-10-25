@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>CapEx_Request__c</fullName>
+    <description>The approved request this entry posts. Sharing is inherited from it.</description>
+    <label>CapEx Request</label>
+    <referenceTo>CapEx_Request__c</referenceTo>
+    <relationshipLabel>Ledger Entries</relationshipLabel>
+    <relationshipName>Ledger_Entries</relationshipName>
+    <relationshipOrder>0</relationshipOrder>
+    <reparentableMasterDetail>false</reparentableMasterDetail>
+    <trackHistory>false</trackHistory>
+    <type>MasterDetail</type>
+    <writeRequiresMasterRead>false</writeRequiresMasterRead>
+</CustomField>

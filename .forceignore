@@ -10,8 +10,3 @@ package.xml
 **/*.ts
 
 # Later-phase scaffolding that does not deploy yet. Remove each entry when its phase is implemented.
-# Phase 4 (CapEx): joined report/dashboard metadata is incomplete
-modules/10-core-domain/reports/reports/CapEx_Reports*
-modules/10-core-domain/reports/reports/CapEx_Reports/**
-modules/10-core-domain/dashboards/dashboards/CapEx_Dashboards*
-modules/10-core-domain/dashboards/dashboards/CapEx_Dashboards/**

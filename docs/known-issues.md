@@ -27,7 +27,11 @@ _Constraint_ = platform limitation with a workaround in place; _Verify_ = suspec
 | KI-016 | DevOps       | Open       | No 2GP release path yet                                                 |
 | KI-017 | DevOps       | Open       | CI is not active until the repository is pushed and secrets are set     |
 | KI-018 | Agentforce   | Open       | Phase 8 scaffold: CLT renderer binds fields the schema does not expose  |
-| KI-019 | CapEx        | Open       | Phase 4 scaffolding excluded from deploys and audits                    |
+| KI-020 | CapEx        | Constraint | Criteria-based sharing cannot be asserted in Apex tests                 |
+| KI-021 | Reporting    | Constraint | Joined report on the CapEx custom report type is rejected ("Obsolete")  |
+| KI-022 | CapEx        | Constraint | ERP integration is simulated; named credential is the legacy format     |
+| KI-023 | CapEx        | Open       | CapEx status can be set directly by administrators                      |
+| KI-024 | CapEx        | Verify     | One unreproduced posting-test failure on the first run after deploy     |
 
 ---
 
@@ -180,8 +184,45 @@ _Constraint_ = platform limitation with a workaround in place; _Verify_ = suspec
   `config/devops/nexus-devops.json`.
 - **Resolution:** fix the binding when Phase 8 starts and remove the allowlist entry.
 
-### KI-019 Phase 4: CapEx scaffolding excluded — _Open_
+## Back-office CapEx (Phase 4)
 
-- **What happens:** the CapEx joined report and dashboard are in `.forceignore` (incomplete metadata), and
-  `CapEx_Request__c.Department__c` is allowlisted (`missing-field-permission`) until `PS_CapEx_*` exists.
-- **Resolution:** complete them in Phase 4 and remove both exclusions.
+### KI-020 Criteria-based sharing cannot be asserted in Apex tests — _Constraint_
+
+- **What happens:** the platform writes criteria-based share rows when the transaction commits. Apex test
+  transactions never commit (`Test.stopTest()` does not flush them), so the positive case of **Approved CapEx to
+  Finance** cannot be asserted. `CapExLifecycleIntegrationTest` covers the hierarchy, peers and "no access before
+  approval"; the rule itself was verified in a scratch org (an approved request gets a `Rule` share, Read, to the
+  Finance Controller role group).
+- **Resolution:** keep the org check in the release checklist, or add a post-deploy smoke script that approves a
+  request and queries `CapEx_Request__Share`.
+
+### KI-021 Joined report on the CapEx custom report type is rejected — _Constraint_
+
+- **What happens:** a joined (MultiBlock) report on `CustomEntity$CapEx_Request__c` fails to deploy with
+  "Report is Obsolete" for every `joinTable` value tried (`CapEx_Request__c`, lower case, the report type name),
+  although summary and matrix reports on the same type deploy. The Phase 4 scaffold's joined report (which also
+  mixed in Cases without a common field) was replaced by the **Departmental CapEx Pipeline** matrix report.
+- **Resolution (optional):** build the joined report in Report Builder, retrieve it, and compare the XML.
+
+### KI-022 ERP integration is simulated; named credential is the legacy format — _Constraint_
+
+- **What happens:** `Mock_ERP_Ledger` points at a non-existent host, so `ERP_Ledger_Setting.Default.Simulate__c` is
+  on and `ErpLedgerClient` returns `SIM-` references without a callout. The named credential uses the legacy
+  format (`principalType` / `protocol`), which Salesforce has superseded with External Credentials.
+- **Resolution:** to integrate a real ERP, migrate to a named credential + external credential (with a principal
+  and permission set mapping), point it at the ERP, and turn simulation off.
+
+### KI-023 CapEx status can be set directly by administrators — _Open_
+
+- **What happens:** `PS_CapEx_Admin` can edit `Status__c`, so an admin can set _Approved_ without the approval
+  process, which also publishes `CapEx_Approved__e` (the bulk test relies on this). Same class of issue as KI-004.
+- **Resolution:** a validation rule allowing status changes only from the approval process (or a bypass custom
+  permission for data migration).
+
+### KI-024 One unreproduced posting-test failure on the first run after deploy — _Verify_
+
+- **What happens:** the very first run of the CapEx tests after the classes were first deployed failed
+  `approvalPublishesAnEventThatPostsToTheLedger` and `opsAdminRequeuesAFailedPosting`: the ledger entry stayed
+  Pending with no error, as if the posting job never ran. Every later run passed (five runs, including one with the
+  admin's CapEx permission sets removed), so it is not a permission dependency. A fresh-org bootstrap (first run after deploy) also passed.
+- **Resolution:** watch CI. If it recurs, capture the debug log of the event delivery and the job.
