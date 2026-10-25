@@ -124,16 +124,15 @@ public with sharing class OpportunityService {
             return;
         }
 
-        Map<Id, Account> accounts = AccountsSelector.newInstance().selectByIdWithCreditStatus(accountIds);
-        Map<Id, Opportunity> detailedOpps = new Map<Id, Opportunity>(
-            OpportunitiesSelector.newInstance().selectByIdWithDetails(existingOppIds)
-        );
+        // Gates are invariants evaluated in system mode: the outcome must not depend on who saves.
+        SalesEngineFactsSelector facts = SalesEngineFactsSelector.newInstance();
+        Set<Id> accountsOnHold = facts.selectAccountIdsOnCreditHold(accountIds);
+        Set<Id> oppsWithPrimaryContact = facts.selectOpportunityIdsWithPrimaryContact(existingOppIds);
 
         // Only one record-level error survives per record, so all gate violations are reported together.
         for (Opportunity opp : closingWon) {
             List<String> violations = new List<String>();
-            Account acc = accounts.get(opp.AccountId);
-            if (acc != null && acc.Credit_Hold__c) {
+            if (accountsOnHold.contains(opp.AccountId)) {
                 violations.add('Cannot Close/Win an Opportunity when parent Account has an active Credit Hold.');
             }
 
@@ -149,8 +148,7 @@ public with sharing class OpportunityService {
                 );
             }
 
-            Opportunity details = detailedOpps.get(opp.Id);
-            if (details != null && !hasPrimaryContactRole(details)) {
+            if (opp.Id != null && !oppsWithPrimaryContact.contains(opp.Id)) {
                 violations.add('Cannot Close/Win an Opportunity without a Primary Contact Role assigned.');
             }
 
@@ -272,7 +270,7 @@ public with sharing class OpportunityService {
         for (Opportunity opp : opps) {
             ownerIds.add(opp.OwnerId == null ? UserInfo.getUserId() : opp.OwnerId);
         }
-        Map<Id, User> owners = UsersSelector.newInstance().selectByIdWithManagerChain(ownerIds);
+        Map<Id, User> owners = SalesEngineFactsSelector.newInstance().selectManagerChains(ownerIds);
         for (Opportunity opp : opps) {
             User owner = owners.get(opp.OwnerId == null ? UserInfo.getUserId() : opp.OwnerId);
             opp.Executive_Approver__c = owner == null ? null : resolveExecutiveApprover(owner);
@@ -296,15 +294,6 @@ public with sharing class OpportunityService {
 
     private static Boolean isDiscountApprovalSatisfied(Opportunity opp) {
         return opp.Approval_Tier__c == null || opp.Discount_Approval_Status__c == STATUS_APPROVED;
-    }
-
-    private static Boolean hasPrimaryContactRole(Opportunity details) {
-        for (OpportunityContactRole ocr : details.OpportunityContactRoles) {
-            if (ocr.IsPrimary) {
-                return true;
-            }
-        }
-        return false;
     }
 
     private static String validateCloseRequest(CloseOpportunityAction.Request req, Map<Id, Integer> seen) {

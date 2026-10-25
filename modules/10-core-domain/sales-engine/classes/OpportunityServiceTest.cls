@@ -1,6 +1,6 @@
 /**
  * @description In-memory unit tests for OpportunityService rules: no SOQL, no DML. Selectors are
- * replaced with TestStub mocks and relationship data is built via JSON. Trigger wiring and bulk
+ * replaced with TestStub mocks and the manager chain is built via JSON. Trigger wiring and bulk
  * behaviour against the database live in OpportunityTriggerIntegrationTest.
  */
 @IsTest
@@ -11,34 +11,26 @@ private class OpportunityServiceTest {
     private static final Id ACCOUNT_ID = TestDataFactory.getFakeId(Account.SObjectType);
     private static final Id CREDIT_HOLD_ACCOUNT_ID = TestDataFactory.getFakeId(Account.SObjectType);
 
-    private static TestStub usersStub;
-    private static TestStub accountsStub;
-    private static TestStub opportunitiesStub;
+    private static TestStub factsStub;
 
-    /** @description Installs selector mocks: rep -> manager -> exec chain and two accounts. */
-    private static void mockSelectors(List<Opportunity> details) {
+    /**
+     * @description Installs the facts selector mock: rep -> manager -> exec chain, one account on
+     * credit hold, and the given opportunities holding a primary contact role.
+     */
+    private static void mockFacts(Set<Id> oppsWithPrimaryContact) {
         SalesEngineTestFixtures.useStandardTiers();
-        usersStub = new TestStub()
+        factsStub = new TestStub()
             .returns(
-                'selectByIdWithManagerChain',
+                'selectManagerChains',
                 new Map<Id, User>{
                     REP_ID => user(REP_ID, MANAGER_ID, true, EXEC_ID, true),
                     MANAGER_ID => user(MANAGER_ID, EXEC_ID, true, null, false),
                     EXEC_ID => user(EXEC_ID, null, false, null, false)
                 }
-            );
-        accountsStub = new TestStub()
-            .returns(
-                'selectByIdWithCreditStatus',
-                new Map<Id, Account>{
-                    ACCOUNT_ID => new Account(Id = ACCOUNT_ID, Credit_Hold__c = false),
-                    CREDIT_HOLD_ACCOUNT_ID => new Account(Id = CREDIT_HOLD_ACCOUNT_ID, Credit_Hold__c = true)
-                }
-            );
-        opportunitiesStub = new TestStub().returns('selectByIdWithDetails', details);
-        UsersSelector.instance = (UsersSelector) usersStub.create(UsersSelector.class);
-        AccountsSelector.instance = (AccountsSelector) accountsStub.create(AccountsSelector.class);
-        OpportunitiesSelector.instance = (OpportunitiesSelector) opportunitiesStub.create(OpportunitiesSelector.class);
+            )
+            .returns('selectAccountIdsOnCreditHold', new Set<Id>{ CREDIT_HOLD_ACCOUNT_ID })
+            .returns('selectOpportunityIdsWithPrimaryContact', oppsWithPrimaryContact);
+        SalesEngineFactsSelector.instance = (SalesEngineFactsSelector) factsStub.create(SalesEngineFactsSelector.class);
     }
 
     private static User user(Id userId, Id managerId, Boolean managerActive, Id grandManagerId, Boolean grandActive) {
@@ -55,29 +47,6 @@ private class OpportunityServiceTest {
             fields.put('Manager', manager);
         }
         return (User) JSON.deserialize(JSON.serialize(fields), User.class);
-    }
-
-    /** @description Opportunity as returned by OpportunitiesSelector, with an in-memory contact role list. */
-    private static Opportunity details(Id oppId, Boolean hasPrimaryContact) {
-        List<Object> roles = new List<Object>{
-            new Map<String, Object>{
-                'attributes' => new Map<String, Object>{ 'type' => 'OpportunityContactRole' },
-                'IsPrimary' => hasPrimaryContact
-            }
-        };
-        return (Opportunity) JSON.deserialize(
-            JSON.serialize(
-                new Map<String, Object>{
-                    'Id' => oppId,
-                    'OpportunityContactRoles' => new Map<String, Object>{
-                        'totalSize' => 1,
-                        'done' => true,
-                        'records' => roles
-                    }
-                }
-            ),
-            Opportunity.class
-        );
     }
 
     private static Opportunity opp(Id accountId, String stage, Decimal discount) {
@@ -125,7 +94,7 @@ private class OpportunityServiceTest {
 
     @IsTest
     static void derivesTierAndStatusFromDiscount() {
-        mockSelectors(new List<Opportunity>());
+        mockFacts(new Set<Id>());
         List<Opportunity> opps = new List<Opportunity>{
             opp(ACCOUNT_ID, 'Prospecting', null),
             opp(ACCOUNT_ID, 'Prospecting', 10),
@@ -147,12 +116,12 @@ private class OpportunityServiceTest {
             opps[3].Executive_Approver__c,
             'Executive approver is the owner\'s manager\'s manager'
         );
-        Assert.areEqual(1, usersStub.callCount('selectByIdWithManagerChain'), 'Owners are resolved in one bulk query');
+        Assert.areEqual(1, factsStub.callCount('selectManagerChains'), 'Owners are resolved in one bulk query');
     }
 
     @IsTest
     static void rejectsOutOfRangeDiscount() {
-        mockSelectors(new List<Opportunity>());
+        mockFacts(new Set<Id>());
         Opportunity negative = opp(ACCOUNT_ID, 'Prospecting', -1);
         Opportunity tooHigh = opp(ACCOUNT_ID, 'Prospecting', 120);
 
@@ -164,7 +133,7 @@ private class OpportunityServiceTest {
 
     @IsTest
     static void loweringApprovedDiscountKeepsApprovalRaisingResets() {
-        mockSelectors(new List<Opportunity>());
+        mockFacts(new Set<Id>());
         Opportunity approved = withId(opp(ACCOUNT_ID, 'Negotiation/Review', 20));
         approved.Approval_Tier__c = 'Tier 1';
         approved.Discount_Approval_Status__c = OpportunityService.STATUS_APPROVED;
@@ -188,7 +157,7 @@ private class OpportunityServiceTest {
 
     @IsTest
     static void rejectedDiscountChangeRequiresResubmission() {
-        mockSelectors(new List<Opportunity>());
+        mockFacts(new Set<Id>());
         Opportunity rejected = withId(opp(ACCOUNT_ID, 'Negotiation/Review', 20));
         rejected.Discount_Approval_Status__c = OpportunityService.STATUS_REJECTED;
         Opportunity changed = rejected.clone(true);
@@ -201,7 +170,7 @@ private class OpportunityServiceTest {
 
     @IsTest
     static void blocksDiscountChangeWhilePending() {
-        mockSelectors(new List<Opportunity>());
+        mockFacts(new Set<Id>());
         Opportunity pending = withId(opp(ACCOUNT_ID, 'Negotiation/Review', 20));
         pending.Discount_Approval_Status__c = OpportunityService.STATUS_PENDING;
         Opportunity changed = pending.clone(true);
@@ -214,7 +183,7 @@ private class OpportunityServiceTest {
 
     @IsTest
     static void unchangedDiscountAndOwnerSkipsPolicyAndQueries() {
-        mockSelectors(new List<Opportunity>());
+        mockFacts(new Set<Id>());
         Opportunity existing = withId(opp(ACCOUNT_ID, 'Negotiation/Review', 30));
         existing.Approval_Tier__c = 'Tier 2';
         existing.Discount_Approval_Status__c = OpportunityService.STATUS_PENDING;
@@ -224,16 +193,12 @@ private class OpportunityServiceTest {
         applyPolicy(statusOnlyChange, existing);
 
         Assert.areEqual(OpportunityService.STATUS_APPROVED, statusOnlyChange.Discount_Approval_Status__c);
-        Assert.areEqual(
-            0,
-            usersStub.callCount('selectByIdWithManagerChain'),
-            'Approval field updates must not re-query'
-        );
+        Assert.areEqual(0, factsStub.callCount('selectManagerChains'), 'Approval field updates must not re-query');
     }
 
     @IsTest
     static void ownerChangeRecalculatesExecutiveApprover() {
-        mockSelectors(new List<Opportunity>());
+        mockFacts(new Set<Id>());
         Opportunity existing = withId(opp(ACCOUNT_ID, 'Negotiation/Review', 30));
         existing.Approval_Tier__c = 'Tier 2';
         existing.Executive_Approver__c = EXEC_ID;
@@ -251,9 +216,9 @@ private class OpportunityServiceTest {
 
     @IsTest
     static void inactiveGrandManagerFallsBackToManager() {
-        mockSelectors(new List<Opportunity>());
-        usersStub.returns(
-            'selectByIdWithManagerChain',
+        mockFacts(new Set<Id>());
+        factsStub.returns(
+            'selectManagerChains',
             new Map<Id, User>{ REP_ID => user(REP_ID, MANAGER_ID, true, EXEC_ID, false) }
         );
 
@@ -265,7 +230,7 @@ private class OpportunityServiceTest {
 
     @IsTest
     static void droppingToTierOneClearsExecutiveApprover() {
-        mockSelectors(new List<Opportunity>());
+        mockFacts(new Set<Id>());
         Opportunity existing = withId(opp(ACCOUNT_ID, 'Negotiation/Review', 30));
         existing.Approval_Tier__c = 'Tier 2';
         existing.Executive_Approver__c = EXEC_ID;
@@ -300,7 +265,7 @@ private class OpportunityServiceTest {
     @IsTest
     static void creditHoldBlocksClosedWonOnInsertAndUpdate() {
         Opportunity existing = withId(opp(CREDIT_HOLD_ACCOUNT_ID, 'Negotiation/Review', null));
-        mockSelectors(new List<Opportunity>{ details(existing.Id, true) });
+        mockFacts(new Set<Id>{ existing.Id });
 
         Opportunity inserted = opp(CREDIT_HOLD_ACCOUNT_ID, OpportunityService.STAGE_CLOSED_WON, null);
         validate(inserted, null);
@@ -317,7 +282,7 @@ private class OpportunityServiceTest {
         Opportunity existing = withId(opp(ACCOUNT_ID, 'Negotiation/Review', 15));
         existing.Approval_Tier__c = 'Tier 1';
         existing.Discount_Approval_Status__c = OpportunityService.STATUS_NOT_SUBMITTED;
-        mockSelectors(new List<Opportunity>{ details(existing.Id, true) });
+        mockFacts(new Set<Id>{ existing.Id });
 
         Opportunity unapproved = existing.clone(true);
         unapproved.StageName = OpportunityService.STAGE_CLOSED_WON;
@@ -335,7 +300,7 @@ private class OpportunityServiceTest {
     static void primaryContactRoleRequiredToCloseWonOnUpdate() {
         Opportunity withoutPrimary = withId(opp(ACCOUNT_ID, 'Negotiation/Review', null));
         Opportunity withPrimary = withId(opp(ACCOUNT_ID, 'Negotiation/Review', null));
-        mockSelectors(new List<Opportunity>{ details(withoutPrimary.Id, false), details(withPrimary.Id, true) });
+        mockFacts(new Set<Id>{ withPrimary.Id });
 
         Opportunity closingWithout = withoutPrimary.clone(true);
         closingWithout.StageName = OpportunityService.STAGE_CLOSED_WON;
@@ -350,14 +315,14 @@ private class OpportunityServiceTest {
         Assert.isFalse(closingWith.hasErrors(), errors(closingWith));
         Assert.areEqual(
             1,
-            opportunitiesStub.callCount('selectByIdWithDetails'),
+            factsStub.callCount('selectOpportunityIdsWithPrimaryContact'),
             'One bulk query for all closing deals'
         );
     }
 
     @IsTest
     static void closedWonInsertSkipsPrimaryContactCheck() {
-        mockSelectors(new List<Opportunity>());
+        mockFacts(new Set<Id>());
         Opportunity migrated = opp(ACCOUNT_ID, OpportunityService.STAGE_CLOSED_WON, null);
 
         validate(migrated, null);
@@ -370,7 +335,7 @@ private class OpportunityServiceTest {
         Opportunity existing = withId(opp(CREDIT_HOLD_ACCOUNT_ID, 'Negotiation/Review', 30));
         existing.Approval_Tier__c = 'Tier 2';
         existing.Discount_Approval_Status__c = OpportunityService.STATUS_NOT_SUBMITTED;
-        mockSelectors(new List<Opportunity>{ details(existing.Id, false) });
+        mockFacts(new Set<Id>());
 
         Opportunity closing = existing.clone(true);
         closing.StageName = OpportunityService.STAGE_CLOSED_WON;
@@ -385,7 +350,7 @@ private class OpportunityServiceTest {
 
     @IsTest
     static void lossReasonRequiredForClosedLost() {
-        mockSelectors(new List<Opportunity>());
+        mockFacts(new Set<Id>());
         Opportunity existing = withId(opp(ACCOUNT_ID, 'Negotiation/Review', null));
 
         Opportunity withoutReason = existing.clone(true);
@@ -402,7 +367,7 @@ private class OpportunityServiceTest {
 
     @IsTest
     static void recordsNotTransitioningAreNotRevalidated() {
-        mockSelectors(new List<Opportunity>());
+        mockFacts(new Set<Id>());
         Opportunity alreadyWon = withId(opp(CREDIT_HOLD_ACCOUNT_ID, OpportunityService.STAGE_CLOSED_WON, null));
         Opportunity edited = alreadyWon.clone(true);
         edited.Name = 'Renamed';
@@ -410,7 +375,7 @@ private class OpportunityServiceTest {
         validate(edited, alreadyWon);
 
         Assert.isFalse(edited.hasErrors(), errors(edited));
-        Assert.areEqual(0, accountsStub.callCount('selectByIdWithCreditStatus'));
-        Assert.areEqual(0, opportunitiesStub.callCount('selectByIdWithDetails'));
+        Assert.areEqual(0, factsStub.callCount('selectAccountIdsOnCreditHold'));
+        Assert.areEqual(0, factsStub.callCount('selectOpportunityIdsWithPrimaryContact'));
     }
 }

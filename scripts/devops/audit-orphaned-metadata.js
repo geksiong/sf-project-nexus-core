@@ -14,6 +14,8 @@
  *   unreferenced-widget         HXL UiWidgetBundles bound by no Custom Lightning Type renderer
  *   unreferenced-clt            Custom Lightning Types referenced by no MCP resource or other type
  *   unreferenced-vip            OmniStudio Integration Procedures (VIPs) referenced by nothing
+ *   facts-selector-exposure     @AuraEnabled / @InvocableMethod / @RestResource classes calling a *FactsSelector
+ *                               directly (system-mode facts must stay inside services, AGENTS.md 2.1)
  *
  * Findings listed in config/devops/nexus-devops.json "allowlist" are reported but do not fail.
  * Usage: node scripts/devops/audit-orphaned-metadata.js
@@ -54,8 +56,17 @@ function main() {
         const source = repo.stripComments(text.get(file));
         const isTest = /@IsTest/i.test(source);
         if (isTest) continue;
-        if (/@(AuraEnabled|InvocableMethod|RestResource)\b/i.test(source) && !granted('apexClass', name)) {
+        const isEntryPoint = /@(AuraEnabled|InvocableMethod|RestResource)\b/i.test(source);
+        if (isEntryPoint && !granted('apexClass', name)) {
             report('missing-class-access', name, 'Apex entry point not granted in any permission set classAccesses');
+        }
+        const factsSelector = isEntryPoint && source.match(/\b[A-Za-z0-9_]*FactsSelector\b/);
+        if (factsSelector) {
+            report(
+                'facts-selector-exposure',
+                name,
+                `Entry point uses ${factsSelector[0]} directly; system-mode facts may only be read by services`
+            );
         }
         if (!ENTRY_POINT_PATTERN.test(source) && !referencedOutside(name, [file])) {
             report('unreferenced-apex', name, 'Not referenced by any Apex, trigger, LWC or metadata');

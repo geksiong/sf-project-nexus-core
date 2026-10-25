@@ -11,7 +11,7 @@ To ensure maximum maintainability, performance, and AI-agent compatibility, Nexu
 
 Business logic is strictly decoupled across three explicit tiers:
 1. **Lightweight Trigger Handlers:** Extend `TriggerHandler.cls`. Responsible only for routing execution contexts (`beforeInsert`, `beforeUpdate`, etc.) and delegating to Services. No business calculations or inline SOQL in handlers.
-2. **Selector Tier (`*Selector.cls`):** Sole authority for SOQL queries. Enforces field selection, user mode (`WITH USER_MODE`), and subqueries.
+2. **Selector Tier (`*Selector.cls`):** Sole authority for SOQL queries. Enforces field selection, user mode (`WITH USER_MODE`), and subqueries. Rule facts read by triggers use a `*FactsSelector` in system mode (2.3).
 3. **Domain Service Tier (`*Service.cls`):** Encapsulates multi-object business logic, validation rules, state machines, and transactional boundaries.
 
 ```text
@@ -70,8 +70,42 @@ public with sharing class OpportunityTriggerHandler extends TriggerHandler {
 }
 ```
 
-### 2.3 Domain Service Implementation (`OpportunityService.cls`)
-Contains the business validation rules and logic:
+### 2.3 Facts Selector for Rule Enforcement (`SalesEngineFactsSelector.cls`)
+Access mode follows purpose. A data-access selector (2.1) runs `WITH USER_MODE` because its records go back to a
+user. A business rule evaluated in a trigger must give the same answer whoever saves the record (sales rep,
+integration user, partner, agent), so the facts it needs come from a `*FactsSelector`:
+
+```apex
+public virtual without sharing class SalesEngineFactsSelector {   // SYSTEM_MODE still applies class sharing
+    @TestVisible
+    private static SalesEngineFactsSelector instance;
+
+    public static SalesEngineFactsSelector newInstance() {
+        if (instance == null) {
+            instance = new SalesEngineFactsSelector();
+        }
+        return instance;
+    }
+
+    /** Narrow question, minimal answer: Ids only, never records that could reach a caller. */
+    public virtual Set<Id> selectAccountIdsOnCreditHold(Set<Id> accountIds) {
+        Set<Id> onHold = new Set<Id>();
+        for (Account acc : [
+            SELECT Id FROM Account WHERE Id IN :accountIds AND Credit_Hold__c = TRUE WITH SYSTEM_MODE
+        ]) {
+            onHold.add(acc.Id);
+        }
+        return onHold;
+    }
+}
+```
+
+Guardrails (PMD + `npm run audit:metadata`): `*FactsSelector` queries must declare `WITH SYSTEM_MODE`, the class must
+be `without sharing`, `WITH SYSTEM_MODE` is rejected in any other class, and entry points (`@AuraEnabled`,
+`@InvocableMethod`, REST) may not call a facts selector directly.
+
+### 2.4 Domain Service Implementation (`OpportunityService.cls`)
+Contains the business validation rules and logic, reading rule facts in system mode:
 
 ```apex
 public with sharing class OpportunityService {
@@ -79,36 +113,28 @@ public with sharing class OpportunityService {
      * @description Enforces: 1) Primary Contact Role required to Close/Win. 2) No closing on credit hold.
      */
     public static void validateStageProgression(List<Opportunity> newOpps, Map<Id, Opportunity> oldOppMap) {
-        Set<Id> closingOppIds = new Set<Id>();
+        List<Opportunity> closingWon = new List<Opportunity>();
+        Set<Id> accountIds = new Set<Id>();
+        Set<Id> existingOppIds = new Set<Id>();
         for (Opportunity opp : newOpps) {
             Opportunity oldOpp = oldOppMap != null ? oldOppMap.get(opp.Id) : null;
             if (opp.StageName == 'Closed Won' && (oldOpp == null || oldOpp.StageName != 'Closed Won')) {
-                closingOppIds.add(opp.Id);
+                closingWon.add(opp);
+                accountIds.add(opp.AccountId);
+                if (opp.Id != null) existingOppIds.add(opp.Id);
             }
         }
+        if (closingWon.isEmpty()) return;
 
-        if (closingOppIds.isEmpty()) return;
+        SalesEngineFactsSelector facts = SalesEngineFactsSelector.newInstance();
+        Set<Id> accountsOnHold = facts.selectAccountIdsOnCreditHold(accountIds);
+        Set<Id> oppsWithPrimaryContact = facts.selectOpportunityIdsWithPrimaryContact(existingOppIds);
 
-        Map<Id, Opportunity> detailedOpps = new Map<Id, Opportunity>(
-            OpportunitiesSelector.newInstance().selectByIdWithDetails(closingOppIds)
-        );
-
-        for (Opportunity opp : newOpps) {
-            if (!detailedOpps.containsKey(opp.Id)) continue;
-            Opportunity details = detailedOpps.get(opp.Id);
-
-            if (details.Account != null && details.Account.Credit_Hold__c == true) {
+        for (Opportunity opp : closingWon) {
+            if (accountsOnHold.contains(opp.AccountId)) {
                 opp.addError('Cannot Close/Win an Opportunity when parent Account has an active Credit Hold.');
             }
-
-            Boolean hasPrimaryContact = false;
-            for (OpportunityContactRole ocr : details.OpportunityContactRoles) {
-                if (ocr.IsPrimary) {
-                    hasPrimaryContact = true;
-                    break;
-                }
-            }
-            if (!hasPrimaryContact) {
+            if (opp.Id != null && !oppsWithPrimaryContact.contains(opp.Id)) {
                 opp.addError('Cannot Close/Win an Opportunity without a Primary Contact Role assigned.');
             }
         }
@@ -116,7 +142,7 @@ public with sharing class OpportunityService {
 }
 ```
 
-### 2.4 Service Orchestration (`CaseEscalationService.cls`)
+### 2.5 Service Orchestration (`CaseEscalationService.cls`)
 ```apex
 public with sharing class CaseEscalationService {
     public static void escalateCases(Set<Id> caseIds, String escalationReason) {
