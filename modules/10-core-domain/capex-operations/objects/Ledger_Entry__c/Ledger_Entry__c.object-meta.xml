@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomObject xmlns="http://soap.sforce.com/2006/04/metadata">
+    <deploymentStatus>Deployed</deploymentStatus>
+    <description>ERP ledger posting for an approved CapEx request. Created by the CapEx_Approved__e consumer (one per request, keyed by Idempotency_Key__c) and posted to the ERP through the Mock_ERP_Ledger named credential.</description>
+    <enableActivities>false</enableActivities>
+    <enableBulkApi>true</enableBulkApi>
+    <enableHistory>false</enableHistory>
+    <enableReports>true</enableReports>
+    <enableSearch>true</enableSearch>
+    <enableSharing>true</enableSharing>
+    <enableStreamingApi>true</enableStreamingApi>
+    <label>Ledger Entry</label>
+    <nameField>
+        <displayFormat>LED-{00000}</displayFormat>
+        <label>Ledger Entry Number</label>
+        <type>AutoNumber</type>
+    </nameField>
+    <pluralLabel>Ledger Entries</pluralLabel>
+    <sharingModel>ControlledByParent</sharingModel>
+</CustomObject>

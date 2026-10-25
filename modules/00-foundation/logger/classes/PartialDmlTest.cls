@@ -1,10 +1,10 @@
 @IsTest
-private class ServiceDeskDmlTest {
+private class PartialDmlTest {
     /** @description Side-effect DML failures are logged (Admin Cockpit error feed), not swallowed. */
     @IsTest
     static void failedRowsAreLoggedAsErrors() {
         Test.startTest();
-        ServiceDeskDml.save(
+        PartialDml.save(
             Database.insert(new List<CaseComment>{ new CaseComment(CommentBody = 'No parent') }, false),
             'Probe operation'
         );
@@ -25,7 +25,7 @@ private class ServiceDeskDmlTest {
 
     @IsTest
     static void successfulRowsLogNothing() {
-        ServiceDeskDml.save(new List<Database.SaveResult>(), 'Probe operation');
+        PartialDml.save(new List<Database.SaveResult>(), 'Probe operation');
         Assert.areEqual(0, Logger.getBufferSize());
     }
 }

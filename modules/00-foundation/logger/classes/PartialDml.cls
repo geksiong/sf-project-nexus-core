@@ -1,8 +1,9 @@
 /**
  * @description Logs the failures of partial-success (allOrNone = false) DML performed as a side effect
- * of a case change, so one bad row neither blocks the agent's save nor disappears silently.
+ * (trigger side effects, event consumers, async jobs), so one bad row neither blocks the main save nor
+ * disappears silently: every failure reaches the Admin Cockpit error feed.
  */
-public with sharing class ServiceDeskDml {
+public with sharing class PartialDml {
     public static void save(List<Database.SaveResult> results, String operation) {
         for (Database.SaveResult result : results) {
             if (!result.isSuccess()) {

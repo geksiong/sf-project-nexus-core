@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<PermissionSet xmlns="http://soap.sforce.com/2006/04/metadata">
+    <applicationVisibilities><application>Nexus_Operations</application><visible>true</visible></applicationVisibilities>
+    <description>Managers (approve via the role hierarchy) and Finance Controllers (approved requests via criteria-based sharing): read CapEx requests and ledger postings they can see.</description>
+    <fieldPermissions><editable>false</editable><field>CapEx_Request__c.Approved_On__c</field><readable>true</readable></fieldPermissions>
+    <fieldPermissions><editable>false</editable><field>CapEx_Request__c.Department__c</field><readable>true</readable></fieldPermissions>
+    <fieldPermissions><editable>false</editable><field>CapEx_Request__c.Description__c</field><readable>true</readable></fieldPermissions>
+    <fieldPermissions><editable>false</editable><field>CapEx_Request__c.Ledger_Status__c</field><readable>true</readable></fieldPermissions>
+    <fieldPermissions><editable>false</editable><field>CapEx_Request__c.Status__c</field><readable>true</readable></fieldPermissions>
+    <fieldPermissions><editable>false</editable><field>Ledger_Entry__c.Amount__c</field><readable>true</readable></fieldPermissions>
+    <fieldPermissions><editable>false</editable><field>Ledger_Entry__c.Attempts__c</field><readable>true</readable></fieldPermissions>
+    <fieldPermissions><editable>false</editable><field>Ledger_Entry__c.Department__c</field><readable>true</readable></fieldPermissions>
+    <fieldPermissions><editable>false</editable><field>Ledger_Entry__c.ERP_Reference__c</field><readable>true</readable></fieldPermissions>
+    <fieldPermissions><editable>false</editable><field>Ledger_Entry__c.Idempotency_Key__c</field><readable>true</readable></fieldPermissions>
+    <fieldPermissions><editable>false</editable><field>Ledger_Entry__c.Last_Error__c</field><readable>true</readable></fieldPermissions>
+    <fieldPermissions><editable>false</editable><field>Ledger_Entry__c.Posted_On__c</field><readable>true</readable></fieldPermissions>
+    <fieldPermissions><editable>false</editable><field>Ledger_Entry__c.Status__c</field><readable>true</readable></fieldPermissions>
+    <hasActivationRequired>false</hasActivationRequired>
+    <label>CapEx Reviewer</label>
+    <objectPermissions><allowCreate>false</allowCreate><allowDelete>false</allowDelete><allowEdit>false</allowEdit><allowRead>true</allowRead><modifyAllRecords>false</modifyAllRecords><object>CapEx_Request__c</object><viewAllRecords>false</viewAllRecords></objectPermissions>
+    <objectPermissions><allowCreate>false</allowCreate><allowDelete>false</allowDelete><allowEdit>false</allowEdit><allowRead>true</allowRead><modifyAllRecords>false</modifyAllRecords><object>Ledger_Entry__c</object><viewAllRecords>false</viewAllRecords></objectPermissions>
+    <tabSettings><tab>CapEx_Request__c</tab><visibility>Visible</visibility></tabSettings>
+    <tabSettings><tab>Ledger_Entry__c</tab><visibility>Visible</visibility></tabSettings>
+</PermissionSet>

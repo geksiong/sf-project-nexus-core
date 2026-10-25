@@ -100,7 +100,7 @@ public with sharing class CaseEscalationService {
             }
         }
         if (!comments.isEmpty()) {
-            ServiceDeskDml.save(Database.insert(comments, false, AccessLevel.SYSTEM_MODE), 'Escalation comment');
+            PartialDml.save(Database.insert(comments, false, AccessLevel.SYSTEM_MODE), 'Escalation comment');
         }
     }
 

@@ -31,6 +31,7 @@ sf project deploy start -d modules/00-foundation -d modules/10-core-domain
 sf org assign permset -n PS_Nexus_Admin -n PS_Sales_Admin -n LoggerAdmin
 sf data create record -s PermissionSetAssignment -v "AssigneeId=<adminUserId> PermissionSetGroupId=<PSG_Sales_Representative Id>"
 #    (same for PSG_Service_Agent)
+sf org assign permset -n PS_CapEx_Submitter -n PS_CapEx_Admin      # admin raises CapEx; Sales Manager gets PS_CapEx_Reviewer
 
 # 4b. Service desk org data the Metadata API cannot deploy: CaseTeamRole records (Technical SME, Escalating Agent,
 #     Account Manager), SetupEntityAccess granting the Available_Cases presence status to PS_Omni_Channel_Agent,
@@ -41,6 +42,7 @@ sf data create record -s PermissionSetAssignment -v "AssigneeId=<adminUserId> Pe
 # 6. Seed sample test data for instant functional verification
 sf data import tree --plan data/data-plan.json
 sf apex run -f scripts/org-init/seed-service-desk.apex   # entitlements + sample cases (idempotent)
+sf apex run -f scripts/org-init/seed-capex.apex          # CapEx requests via the approval process (idempotent)
 
 # 7. Run Nexus Apex tests with the coverage gate (every *Test.cls in the active modules; RunLocalTests would
 #    also run ~1,300 Nebula Logger tests)
@@ -70,7 +72,7 @@ Heavy reflection-based frameworks (`fflib`) are prohibited in Nexus Core in favo
 - **Triggers:** Triggers must be one line: `new SObjectTriggerHandler().run();`
 - **Trigger Handlers:** Must extend `TriggerHandler.cls`. Handlers only route execution context; they contain no business logic or inline SOQL.
 - **Selector Layer:** All SOQL queries must reside in dedicated `*Selector.cls` classes, enforcing explicit field selection and `WITH USER_MODE`. Never write inline SOQL in controllers, invocables, or triggers. Selectors are `virtual` instances obtained via `XSelector.newInstance()` so unit tests can replace them with `TestStub` mocks (`XSelector.instance = (XSelector) new TestStub().returns(...).create(XSelector.class)`). These rules are enforced by the Nexus PMD ruleset (`config/pmd/nexus-apex-rules.xml`).
-- **Access Mode Follows Purpose:** `WITH USER_MODE` is for _data access_ (records read on behalf of a user and returned, displayed or acted upon). Business _rule enforcement_ (stage gates, approval routing, invariants evaluated in triggers) must not depend on who saves the record (integration users, partners, agents), so its queries live in a `virtual without sharing` `*FactsSelector` using `WITH SYSTEM_MODE`. Facts selector methods answer a narrow question and return Ids, flags or hierarchy-only records; results never leave the service, and `*FactsSelector` classes must not be called from `@AuraEnabled`, `@InvocableMethod` or REST classes (enforced by PMD and `npm run audit:metadata`). Reference: `SalesEngineFactsSelector`.
+- **Access Mode Follows Purpose:** `WITH USER_MODE` is for _data access_ (records read on behalf of a user and returned, displayed or acted upon). Business _rule enforcement_ (stage gates, approval routing, invariants evaluated in triggers) must not depend on who saves the record (integration users, partners, agents), so its queries live in a `virtual without sharing` `*FactsSelector` using `WITH SYSTEM_MODE`. Facts selector methods answer a narrow question and return Ids, flags or hierarchy-only records; results never leave the service, and `*FactsSelector` classes must not be called from `@AuraEnabled`, `@InvocableMethod` or REST classes (enforced by PMD and `npm run audit:metadata`). Reference: `SalesEngineFactsSelector`. System automation that acts for no person (platform event consumers run as the Automated Process user; queueable jobs) also reads through a `*FactsSelector` and writes in system mode; such methods may return the minimal records the job processes (`CapExFactsSelector.selectPendingEntries`). Event-driven rules: `docs/best-practices/02-event-driven-architecture.md`.
 - **Domain Service Layer:** All business logic, validations, and DML orchestration belong in `*Service.cls` classes.
 - **Observability:** Log all caught exceptions using `Nebula Logger` (`Logger.error()`, `Logger.saveLog()`).
 
