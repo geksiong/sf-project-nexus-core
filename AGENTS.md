@@ -22,17 +22,25 @@ sf org create scratch -f config/project-scratch-def-headless.json -a nexus-dev -
 # 2. Install Nebula Logger (unlocked, no namespace) - 00-foundation depends on it
 sf package install -o nexus-dev --package 04tg7000000IzRdAAK --security-type AdminsOnly --wait 20 --no-prompt
 
-# 3. Deploy Foundation and Core Domain modules by source directory (ADR 0005 inner loop)
+# 3. Deploy Foundation and Core Domain modules by source directory (ADR 0005 inner loop). Queues go first: the
+#    Case assignment rule cannot reference a queue created in the same deployment.
+sf project deploy start -m Role -m QueueRoutingConfig -m Queue
 sf project deploy start -d modules/00-foundation -d modules/10-core-domain
 
 # 4. Permissions: there is no `sf org assign permsetgroup`; PSGs are assigned via a PermissionSetAssignment record
 sf org assign permset -n PS_Nexus_Admin -n PS_Sales_Admin -n LoggerAdmin
 sf data create record -s PermissionSetAssignment -v "AssigneeId=<adminUserId> PermissionSetGroupId=<PSG_Sales_Representative Id>"
+#    (same for PSG_Service_Agent)
+
+# 4b. Service desk org data the Metadata API cannot deploy: CaseTeamRole records (Technical SME, Escalating Agent,
+#     Account Manager), SetupEntityAccess granting the Available_Cases presence status to PS_Omni_Channel_Agent,
+#     and GroupMember rows adding the admin to the Tier_1_Support / Tier_2_Technical_Escalations queues
 
 # 5. Create the Sales Manager persona (config/users/) and set it as the admin user's manager (approval routing)
 
 # 6. Seed sample test data for instant functional verification
 sf data import tree --plan data/data-plan.json
+sf apex run -f scripts/org-init/seed-service-desk.apex   # entitlements + sample cases (idempotent)
 
 # 7. Run Nexus Apex tests with the coverage gate (every *Test.cls in the active modules; RunLocalTests would
 #    also run ~1,300 Nebula Logger tests)

@@ -7,7 +7,8 @@
 #                                                   [--skip-create] [--skip-tests]
 #
 # Scratch Developer Edition orgs include only 2 Salesforce licenses, so the admin user doubles as the
-# Sales Representative persona and one extra "Sales Manager" user is created to approve Tier 1 discounts.
+# Sales Representative and Service Agent personas, and one extra "Sales Manager" user is created to
+# approve Tier 1 discounts.
 set -euo pipefail
 
 ALIAS="nexus-dev"
@@ -70,6 +71,12 @@ fi
 mapfile -t MODULES < <(jq -r '.activeModules[]' config/devops/nexus-devops.json)
 DEPLOY_ARGS=()
 for module in "${MODULES[@]}"; do DEPLOY_ARGS+=(-d "$module"); done
+# A Case assignment rule cannot reference a queue created in the same deployment, so queues (and the
+# roles and routing configs they reference) go first.
+step "Pre-deploying service desk queues"
+sf_json project deploy start -o "$ALIAS" -m Role -m QueueRoutingConfig -m Queue --wait 30 \
+    | jq -r '"    \(.result.numberComponentsDeployed) components deployed"'
+
 step "Deploying ${MODULES[*]}"
 sf_json project deploy start -o "$ALIAS" "${DEPLOY_ARGS[@]}" --wait 30 \
     | jq -r '"    \(.result.numberComponentsDeployed) components deployed"'
@@ -82,17 +89,46 @@ for permset in PS_Nexus_Admin PS_Sales_Admin LoggerAdmin; do
     fi
 done
 
-step "Assigning PSG_Sales_Representative"
-for _ in $(seq 1 30); do
-    PSG=$(sf_json data query -o "$ALIAS" -q "SELECT Id, Status FROM PermissionSetGroup WHERE DeveloperName = 'PSG_Sales_Representative'")
-    [[ "$(jq -r '.result.records[0].Status' <<<"$PSG")" == "Updated" ]] && break
-    sleep 5
+# There is no `sf org assign permsetgroup`: wait for the group to finish calculating, then insert the assignment.
+assign_psg() {
+    local psg psg_id
+    for _ in $(seq 1 30); do
+        psg=$(sf_json data query -o "$ALIAS" -q "SELECT Id, Status FROM PermissionSetGroup WHERE DeveloperName = '$1'")
+        [[ "$(jq -r '.result.records[0].Status' <<<"$psg")" == "Updated" ]] && break
+        sleep 5
+    done
+    psg_id=$(jq -r '.result.records[0].Id' <<<"$psg")
+    if [[ -z "$(query_id "SELECT Id FROM PermissionSetAssignment WHERE AssigneeId = '$ADMIN_ID' AND PermissionSetGroupId = '$psg_id'")" ]]; then
+        sf_json data create record -o "$ALIAS" -s PermissionSetAssignment \
+            -v "AssigneeId=$ADMIN_ID PermissionSetGroupId=$psg_id" >/dev/null
+    fi
+}
+
+step "Assigning PSG_Sales_Representative and PSG_Service_Agent"
+assign_psg PSG_Sales_Representative
+assign_psg PSG_Service_Agent
+
+# Org data the service desk needs that the Metadata API cannot deploy.
+step "Configuring service desk (case team roles, Omni-Channel presence, queue membership)"
+for role in "Technical SME:Edit" "Escalating Agent:Edit" "Account Manager:Read"; do
+    if [[ -z "$(query_id "SELECT Id FROM CaseTeamRole WHERE Name = '${role%%:*}'")" ]]; then
+        sf_json data create record -o "$ALIAS" -s CaseTeamRole -v "Name='${role%%:*}' AccessLevel=${role##*:}" >/dev/null
+    fi
 done
-PSG_ID=$(jq -r '.result.records[0].Id' <<<"$PSG")
-if [[ -z "$(query_id "SELECT Id FROM PermissionSetAssignment WHERE AssigneeId = '$ADMIN_ID' AND PermissionSetGroupId = '$PSG_ID'")" ]]; then
-    sf_json data create record -o "$ALIAS" -s PermissionSetAssignment \
-        -v "AssigneeId=$ADMIN_ID PermissionSetGroupId=$PSG_ID" >/dev/null
+# Presence status access is not supported in PermissionSet metadata (API 62): grant it to PS_Omni_Channel_Agent.
+OMNI_PS_ID=$(query_id "SELECT Id FROM PermissionSet WHERE Name = 'PS_Omni_Channel_Agent'")
+STATUS_ID=$(query_id "SELECT Id FROM ServicePresenceStatus WHERE DeveloperName = 'Available_Cases'")
+if [[ -z "$(query_id "SELECT Id FROM SetupEntityAccess WHERE ParentId = '$OMNI_PS_ID' AND SetupEntityId = '$STATUS_ID'")" ]]; then
+    sf_json data create record -o "$ALIAS" -s SetupEntityAccess -v "ParentId=$OMNI_PS_ID SetupEntityId=$STATUS_ID" >/dev/null
 fi
+# Queues admit Service_Agent role members; the admin holds the Sales Representative role, so add it directly.
+for queue in Tier_1_Support Tier_2_Technical_Escalations; do
+    QUEUE_ID=$(query_id "SELECT Id FROM Group WHERE Type = 'Queue' AND DeveloperName = '$queue'")
+    if [[ -z "$(query_id "SELECT Id FROM GroupMember WHERE GroupId = '$QUEUE_ID' AND UserOrGroupId = '$ADMIN_ID'")" ]]; then
+        sf_json data create record -o "$ALIAS" -s GroupMember -v "GroupId=$QUEUE_ID UserOrGroupId=$ADMIN_ID" >/dev/null
+    fi
+done
+echo "    Case team roles, Available - Cases presence status and Tier 1/Tier 2 queue membership ready"
 
 step "Creating Sales Manager persona and manager chain"
 MANAGER_ID=$(query_id "SELECT Id FROM User WHERE Alias = 'smgr' AND IsActive = true")
@@ -112,6 +148,8 @@ if [[ -z "$(query_id "SELECT Id FROM Opportunity WHERE Name = 'Acme Industrial I
 else
     echo "    Seed data already present - skipped"
 fi
+sf_json apex run -o "$ALIAS" -f scripts/org-init/seed-service-desk.apex \
+    | jq -r '.result.logs' | grep -oE 'USER_DEBUG\|[^|]*\|DEBUG\|.*' | cut -d'|' -f4 | sed 's/^/    Service desk: /'
 
 if [[ "$SKIP_TESTS" == false ]]; then
     step "Running Nexus Core Apex tests (coverage gate)"
@@ -121,3 +159,4 @@ fi
 step "Done in $(( $(date +%s) - START ))s"
 echo "    Admin Cockpit: sf org open -o $ALIAS -p lightning/n/Nexus_Admin_Cockpit"
 echo "    Sales app:     sf org open -o $ALIAS -p lightning/app/c__Nexus_Sales"
+echo "    Service app:   sf org open -o $ALIAS -p lightning/app/c__Nexus_Service"

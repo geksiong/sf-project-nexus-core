@@ -163,7 +163,8 @@ function main() {
                 else {
                     const relative = path.relative(work, full).split(path.sep).join('/');
                     const key = repo.metadataKey(relative);
-                    if (key) retrieved.set(key, full);
+                    // Metadata names are case-insensitive and some types (EntitlementProcess) retrieve lower-cased.
+                    if (key) retrieved.set(key.toLowerCase(), full);
                 }
             }
         };
@@ -177,7 +178,7 @@ function main() {
             if (!key || file.includes('/__tests__/') || file.endsWith('.md')) continue;
             compared++;
             const type = key.split('/')[0];
-            const orgFile = retrieved.get(key);
+            const orgFile = retrieved.get(key.toLowerCase());
             if (!orgFile) {
                 drift.push({ status: 'MISSING_IN_ORG', file, type });
             } else if (differs(file, repo.readText(file), fs.readFileSync(orgFile, 'utf8'))) {

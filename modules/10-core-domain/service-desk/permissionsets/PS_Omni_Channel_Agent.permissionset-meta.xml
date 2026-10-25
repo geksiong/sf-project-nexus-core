@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<PermissionSet xmlns="http://soap.sforce.com/2006/04/metadata">
+    <description>Omni-Channel agent: can go Available for Cases and receive work routed from the Tier 1 and Tier 2 queues.</description>
+    <hasActivationRequired>false</hasActivationRequired>
+    <label>Omni-Channel Agent</label>
+</PermissionSet>

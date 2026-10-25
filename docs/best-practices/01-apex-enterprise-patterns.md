@@ -143,82 +143,61 @@ public with sharing class OpportunityService {
 ```
 
 ### 2.5 Service Orchestration (`CaseEscalationService.cls`)
-The service reads the cases it acts on through a data-access selector (user mode), resolves routing configuration
-(queue, team role) through a facts selector (system mode, so automated and agent-triggered escalations behave the
-same as manual ones), fails clearly when that configuration is missing, and performs DML in user mode:
+Every escalation channel converges on one policy in the Case trigger: the Escalate Case flow, Agentforce or MCP
+(`EscalateCaseAction` sets _Status = Escalated_ **in user mode**, so the caller must be allowed to edit the case), an
+SLA breach (the entitlement process flags `SLA_Breached__c`), or an agent editing the status. Routing configuration
+comes from the facts selector, so automated and agent-triggered escalations behave the same as manual ones, and
+missing configuration fails clearly instead of with "List has no rows":
 
 ```apex
 public with sharing class CaseEscalationService {
-    public class EscalationConfigException extends Exception {}
+    public static final String STATUS_ESCALATED = 'Escalated';
+    public static final String ESCALATION_QUEUE = 'Tier_2_Technical_Escalations';
 
-    @TestVisible
-    private static final String ESCALATION_QUEUE = 'Tier_2_Technical_Escalations';
-    @TestVisible
-    private static final String SME_TEAM_ROLE = 'Technical SME';
+    public static Boolean isEscalation(Case c, Case old) {
+        return old != null && c.Status == STATUS_ESCALATED && old.Status != STATUS_ESCALATED;
+    }
 
-    public static void escalateCases(Set<Id> caseIds, String escalationReason, Id smeUserId) {
-        if (caseIds == null || caseIds.isEmpty()) return;
-
-        ServiceDeskFactsSelector facts = ServiceDeskFactsSelector.newInstance();
-        Id queueId = facts.selectQueueId(ESCALATION_QUEUE);
-        Id smeRoleId = facts.selectCaseTeamRoleId(SME_TEAM_ROLE);
-        if (queueId == null || smeRoleId == null) {
-            throw new EscalationConfigException(
-                'Escalation is not configured: queue ' + ESCALATION_QUEUE + ' and Case Team Role ' +
-                SME_TEAM_ROLE + ' must exist.'
-            );
-        }
-
-        List<Case> casesToEscalate = CasesSelector.newInstance().selectById(caseIds);
-        List<CaseComment> reasons = new List<CaseComment>();
-        List<CaseTeamMember> teamMembers = new List<CaseTeamMember>();
-        for (Case c : casesToEscalate) {
-            c.Priority = 'Critical';
-            c.Status = 'Escalated';
-            c.OwnerId = queueId;
-            reasons.add(new CaseComment(ParentId = c.Id, CommentBody = 'Escalated: ' + escalationReason));
-            if (smeUserId != null) {
-                teamMembers.add(new CaseTeamMember(ParentId = c.Id, MemberId = smeUserId, TeamRoleId = smeRoleId));
+    /** Before update: converts SLA breaches into escalations, then applies the policy. */
+    public static void applyEscalationPolicy(List<Case> cases, Map<Id, Case> oldMap) {
+        List<Case> escalating = new List<Case>();
+        for (Case c : cases) {
+            Case old = oldMap.get(c.Id);
+            if (c.SLA_Breached__c && !old.SLA_Breached__c && !old.IsClosed && c.Status != STATUS_ESCALATED) {
+                c.Status = STATUS_ESCALATED;
             }
+            if (isEscalation(c, old)) escalating.add(c);
         }
+        if (escalating.isEmpty()) return;
 
-        update as user casesToEscalate;
-        insert as user reasons;
-        if (!teamMembers.isEmpty()) {
-            insert as user teamMembers;
+        Id queueId = ServiceDeskFactsSelector.newInstance().selectQueueId(ESCALATION_QUEUE);
+        for (Case c : escalating) {
+            if (queueId == null) {
+                c.addError('Escalation is not configured: the ' + ESCALATION_QUEUE + ' queue does not exist.');
+                continue;
+            }
+            c.Priority = 'High';
+            c.OwnerId = queueId;          // Omni-Channel routes the case from the Tier 2 queue
+            c.Escalated_On__c = System.now();
         }
     }
 }
 ```
 
+Side effects run after update in system mode, and only follow a change the user was allowed to make: the reason as
+a private `CaseComment`, and case team provisioning (`CaseTeamService`). Side-effect DML uses `allOrNone = false`
+and logs failures through Nebula Logger, so one bad row neither blocks the agent's save nor disappears silently.
+
 The routing facts follow the 2.3 contract (narrow question, Id answer, `without sharing`, `WITH SYSTEM_MODE`):
 
 ```apex
 public virtual without sharing class ServiceDeskFactsSelector {
-    @TestVisible
-    private static ServiceDeskFactsSelector instance;
-
-    public static ServiceDeskFactsSelector newInstance() {
-        if (instance == null) {
-            instance = new ServiceDeskFactsSelector();
-        }
-        return instance;
-    }
-
-    /** Queue Id by developer name, or null when the queue does not exist. */
+    /** Case queue Id by developer name, or null when the queue does not exist. */
     public virtual Id selectQueueId(String developerName) {
         for (Group queue : [
             SELECT Id FROM Group WHERE Type = 'Queue' AND DeveloperName = :developerName WITH SYSTEM_MODE LIMIT 1
         ]) {
             return queue.Id;
-        }
-        return null;
-    }
-
-    /** Case Team Role Id by name, or null when the role does not exist. */
-    public virtual Id selectCaseTeamRoleId(String roleName) {
-        for (CaseTeamRole role : [SELECT Id FROM CaseTeamRole WHERE Name = :roleName WITH SYSTEM_MODE LIMIT 1]) {
-            return role.Id;
         }
         return null;
     }

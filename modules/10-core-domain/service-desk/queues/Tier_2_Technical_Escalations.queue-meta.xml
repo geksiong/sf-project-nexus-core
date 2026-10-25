@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Queue xmlns="http://soap.sforce.com/2006/04/metadata">
+    <doesSendEmailToMembers>false</doesSendEmailToMembers>
+    <name>Tier 2 Technical Escalations</name>
+    <queueMembers>
+        <roles>
+            <role>Service_Agent</role>
+        </roles>
+    </queueMembers>
+    <queueRoutingConfig>Tier_2_Routing</queueRoutingConfig>
+    <queueSobject>
+        <sobjectType>Case</sobjectType>
+    </queueSobject>
+</Queue>
