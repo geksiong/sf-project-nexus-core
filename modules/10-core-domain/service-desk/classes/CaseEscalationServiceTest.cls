@@ -73,7 +73,7 @@ private class CaseEscalationServiceTest {
     }
 
     @IsTest
-    static void slaBreachBecomesEscalation() {
+    static void slaViolationBecomesEscalation() {
         mockFacts(QUEUE_ID);
         Case old = existing('New', false, null);
         Case breached = old.clone(true);
@@ -87,7 +87,21 @@ private class CaseEscalationServiceTest {
     }
 
     @IsTest
-    static void slaBreachIgnoredWhenAlreadyEscalatedOrClosed() {
+    static void violationSignalIsConsumedSoEveryViolationEscalates() {
+        mockFacts(QUEUE_ID);
+        Case old = existing('Working', false, null);
+        Case violated = old.clone(true);
+        violated.SLA_Breached__c = true;
+
+        apply(violated, old);
+
+        Assert.isFalse(violated.SLA_Breached__c, 'Signal reset, so the next violated milestone flips it again');
+        Assert.isNotNull(violated.SLA_Violated_On__c, 'Violation time recorded for reporting');
+        Assert.areEqual(CaseEscalationService.STATUS_ESCALATED, violated.Status);
+    }
+
+    @IsTest
+    static void slaViolationIgnoredWhenAlreadyEscalatedOrClosed() {
         mockFacts(QUEUE_ID);
         Case escalated = existing(CaseEscalationService.STATUS_ESCALATED, false, 'Earlier');
         Case escalatedBreach = escalated.clone(true);
@@ -100,6 +114,8 @@ private class CaseEscalationServiceTest {
         apply(closedBreach, closed);
 
         Assert.areEqual(AGENT_ID, escalatedBreach.OwnerId, 'Already escalated: not re-routed');
+        Assert.isFalse(escalatedBreach.SLA_Breached__c, 'Signal is still consumed');
+        Assert.isNotNull(escalatedBreach.SLA_Violated_On__c);
         Assert.areEqual('Closed', closedBreach.Status, 'Closed cases are never reopened by a breach');
         Assert.areEqual(0, facts.callCount('selectQueueId'));
     }

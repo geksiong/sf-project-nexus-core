@@ -57,6 +57,8 @@ npm run verify   # Prettier, ESLint, LWC Jest, CLT/HXL schemas, module boundarie
 
 CI (`.github/workflows/ci.yml`) runs the same gates plus the scratch org Apex suite (>= 85% Nexus coverage). Do not weaken a gate to make it pass: fix the code, or add a reasoned, phase-tagged entry to the `allowlist` in `config/devops/nexus-devops.json`.
 
+Open review findings and platform constraints live in `docs/known-issues.md`. Check it before changing an affected area, add an entry for any issue you defer, and delete the entry (citing its ID in the commit) when you resolve it.
+
 ---
 
 ## 2. Core Architectural Guardrails

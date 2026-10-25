@@ -82,14 +82,14 @@ Open the **Nexus Service** console app (`sf org open -p lightning/app/c__Nexus_S
 the active Case assignment rule to the **Tier 1 Support** queue and pushed to agents by Omni-Channel (utility bar →
 _Available - Cases_).
 
-| Component (`10-core-domain/service-desk`)                                                             | Purpose                                                                                                |
-| ----------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------ |
-| `CaseTrigger` → `CaseTriggerHandler` → `CaseEscalationService`, `CaseSlaService`, `CaseTeamService`   | Escalation policy, entitlement linking, milestone completion, case team provisioning                   |
-| `CasesSelector` / `ServiceDeskFactsSelector`                                                          | Data access `WITH USER_MODE` / rule facts `WITH SYSTEM_MODE` (queues, roles, entitlements, milestones) |
-| `EscalateCaseAction` + **Escalate Case** screen flow (quick action on the **Nexus Case Record Page**) | Escalate with a reason and optional Technical SME via the uniform invocable result envelope            |
-| **Nexus Standard Support** entitlement process, `First Response` / `Resolution` milestones            | SLA targets by priority (High 1h/8h, Medium 4h/24h, Low 8h/48h); a violation flags `SLA_Breached__c`   |
-| Omni-Channel: `Case_Channel`, `Available_Cases`, `Tier_1_Routing` / `Tier_2_Routing`, two queues      | Most-available push routing; Tier 2 escalations are routed first                                       |
-| `PSG_Service_Agent` (`PS_Service_Agent` + `PS_Omni_Channel_Agent`), **Nexus Service** app             | Access model                                                                                           |
+| Component (`10-core-domain/service-desk`)                                                             | Purpose                                                                                                           |
+| ----------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| `CaseTrigger` → `CaseTriggerHandler` → `CaseEscalationService`, `CaseSlaService`, `CaseTeamService`   | Escalation policy, entitlement linking, milestone completion, case team provisioning                              |
+| `CasesSelector` / `ServiceDeskFactsSelector`                                                          | Data access `WITH USER_MODE` / rule facts `WITH SYSTEM_MODE` (queues, roles, entitlements, milestones)            |
+| `EscalateCaseAction` + **Escalate Case** screen flow (quick action on the **Nexus Case Record Page**) | Escalate with a reason and optional Technical SME via the uniform invocable result envelope                       |
+| **Nexus Standard Support** entitlement process, `First Response` / `Resolution` milestones            | SLA targets by priority (High 1h/8h, Medium 4h/24h, Low 8h/48h); every violation escalates (`SLA_Violated_On__c`) |
+| Omni-Channel: `Case_Channel`, `Available_Cases`, `Tier_1_Routing` / `Tier_2_Routing`, two queues      | Most-available push routing; Tier 2 escalations are routed first                                                  |
+| `PSG_Service_Agent` (`PS_Service_Agent` + `PS_Omni_Channel_Agent`), **Nexus Service** app             | Access model                                                                                                      |
 
 ### Service desk rules
 
@@ -99,15 +99,19 @@ _Available - Cases_).
 - **Case team:** on escalation the previous owner (if a user) joins as _Escalating Agent_ and keeps access; the
   `Technical_SME__c` user joins as _Technical SME_; when a case becomes High priority the account owner joins as
   _Account Manager_ (read only).
-- **SLA:** new cases inherit their account's active entitlement; leaving _New_ completes First Response; closing
+- **SLA:** cases inherit their account's active entitlement (when created with, or later given, an account); moving
+  into a working status completes First Response (escalating does not count as a response); closing
   completes Resolution.
+- **SLA violations:** every violated milestone escalates the case (unless it is already escalated or closed) and
+  stamps `SLA_Violated_On__c`. The entitlement process signals through `SLA_Breached__c`, which the trigger resets.
 - Rule facts and side effects (comments, team members, milestone completion) run in system mode; they only follow a
   case change the running user was allowed to make. The escalation itself runs in user mode.
 
 > The admin user also covers the Service Agent persona (2-license limit). The setup script creates the Case Team
 > Roles, grants the _Available - Cases_ presence status (not deployable as permission set metadata at API 62), adds
 > the admin to both queues and seeds entitlements and five sample cases (`scripts/org-init/seed-service-desk.apex`).
-> The Case assignment rule is org-wide: deploying it to a sandbox replaces that org's active Case assignment rule.
+> Open issues and platform constraints (entitlement process versioning, the org-wide Case assignment rule, and
+> others) are tracked in [`docs/known-issues.md`](docs/known-issues.md).
 
 ## Quality Gates & CI (Phase 2)
 

@@ -78,6 +78,17 @@ sf_json project deploy start -o "$ALIAS" -m Role -m QueueRoutingConfig -m Queue 
     | jq -r '"    \(.result.numberComponentsDeployed) components deployed"'
 
 step "Deploying ${MODULES[*]}"
+# An entitlement process that entitlements already use cannot be redeployed, even unchanged ("Cannot update
+# SLA process that is in use"); changes need a new process version. On re-runs, deploy everything else.
+if [[ -n "$(query_id "SELECT Id FROM SlaProcess WHERE Name = 'Nexus Standard Support'")" ]]; then
+    MANIFEST_DIR=$(mktemp -d)
+    MANIFEST_ARGS=()
+    for module in "${MODULES[@]}"; do MANIFEST_ARGS+=(--source-dir "$module"); done
+    sf_json project generate manifest "${MANIFEST_ARGS[@]}" --output-dir "$MANIFEST_DIR" --name package.xml >/dev/null
+    perl -0pi -e 's{<types>(?:(?!</types>).)*?<name>EntitlementProcess</name>\s*</types>\s*}{}s' "$MANIFEST_DIR/package.xml"
+    echo "    Nexus Standard Support is in use - skipping EntitlementProcess (see docs/known-issues.md)"
+    DEPLOY_ARGS=(--manifest "$MANIFEST_DIR/package.xml")
+fi
 sf_json project deploy start -o "$ALIAS" "${DEPLOY_ARGS[@]}" --wait 30 \
     | jq -r '"    \(.result.numberComponentsDeployed) components deployed"'
 

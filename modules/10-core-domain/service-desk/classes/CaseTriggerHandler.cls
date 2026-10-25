@@ -1,9 +1,10 @@
 public with sharing class CaseTriggerHandler extends TriggerHandler {
     protected override void beforeInsert(List<SObject> newRecords) {
-        CaseSlaService.assignEntitlements((List<Case>) newRecords);
+        CaseSlaService.assignEntitlements((List<Case>) newRecords, null);
     }
 
     protected override void beforeUpdate(List<SObject> updatedRecords, Map<Id, SObject> oldRecordMap) {
+        CaseSlaService.assignEntitlements((List<Case>) updatedRecords, (Map<Id, Case>) oldRecordMap);
         CaseEscalationService.applyEscalationPolicy((List<Case>) updatedRecords, (Map<Id, Case>) oldRecordMap);
     }
 

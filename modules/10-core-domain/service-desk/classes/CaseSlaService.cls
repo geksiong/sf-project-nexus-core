@@ -10,29 +10,34 @@ public with sharing class CaseSlaService {
     public static final String MILESTONE_RESOLUTION = 'Resolution';
     public static final String STATUS_NEW = 'New';
 
-    /** @description Before insert: cases without an entitlement inherit their account's active one. */
-    public static void assignEntitlements(List<Case> cases) {
+    /**
+     * @description Before insert (oldMap null) and before update: a case without an entitlement inherits
+     * its account's active one when it is created with, or later given, an account.
+     */
+    public static void assignEntitlements(List<Case> cases, Map<Id, Case> oldMap) {
+        List<Case> eligible = new List<Case>();
         Set<Id> accountIds = new Set<Id>();
         for (Case c : cases) {
-            if (c.EntitlementId == null && c.AccountId != null) {
+            Case old = oldMap == null ? null : oldMap.get(c.Id);
+            if (c.EntitlementId == null && c.AccountId != null && (old == null || old.AccountId != c.AccountId)) {
+                eligible.add(c);
                 accountIds.add(c.AccountId);
             }
         }
-        if (accountIds.isEmpty()) {
+        if (eligible.isEmpty()) {
             return;
         }
         Map<Id, Id> entitlementIds = ServiceDeskFactsSelector.newInstance()
             .selectActiveEntitlementIdsByAccount(accountIds);
-        for (Case c : cases) {
-            if (c.EntitlementId == null && entitlementIds.containsKey(c.AccountId)) {
-                c.EntitlementId = entitlementIds.get(c.AccountId);
-            }
+        for (Case c : eligible) {
+            c.EntitlementId = entitlementIds.get(c.AccountId);
         }
     }
 
     /**
-     * @description After update: leaving New completes First Response; closing completes First Response
-     * (if still open) and Resolution.
+     * @description After update: moving into a working status completes First Response; closing completes
+     * First Response (if still open) and Resolution. Escalating is not a response to the customer, so a move
+     * into Escalated (manual or automatic on SLA violation) leaves First Response running.
      */
     public static void completeMilestones(List<Case> cases, Map<Id, Case> oldMap) {
         List<CaseMilestone> completions = planMilestoneCompletions(cases, oldMap);
@@ -53,7 +58,11 @@ public with sharing class CaseSlaService {
             }
             Set<String> names = new Set<String>();
             Boolean closed = c.IsClosed && !old.IsClosed;
-            if (closed || (old.Status == STATUS_NEW && c.Status != STATUS_NEW)) {
+            Boolean responded =
+                c.Status != old.Status &&
+                c.Status != STATUS_NEW &&
+                c.Status != CaseEscalationService.STATUS_ESCALATED;
+            if (closed || responded) {
                 names.add(MILESTONE_FIRST_RESPONSE);
             }
             if (closed) {

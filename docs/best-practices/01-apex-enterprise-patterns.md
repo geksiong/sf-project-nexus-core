@@ -145,7 +145,8 @@ public with sharing class OpportunityService {
 ### 2.5 Service Orchestration (`CaseEscalationService.cls`)
 Every escalation channel converges on one policy in the Case trigger: the Escalate Case flow, Agentforce or MCP
 (`EscalateCaseAction` sets _Status = Escalated_ **in user mode**, so the caller must be allowed to edit the case), an
-SLA breach (the entitlement process flags `SLA_Breached__c`), or an agent editing the status. Routing configuration
+SLA violation (the entitlement process sets the one-shot `SLA_Breached__c` signal, which the policy resets so every
+violated milestone escalates), or an agent editing the status. Routing configuration
 comes from the facts selector, so automated and agent-triggered escalations behave the same as manual ones, and
 missing configuration fails clearly instead of with "List has no rows":
 
@@ -163,7 +164,12 @@ public with sharing class CaseEscalationService {
         List<Case> escalating = new List<Case>();
         for (Case c : cases) {
             Case old = oldMap.get(c.Id);
-            if (c.SLA_Breached__c && !old.SLA_Breached__c && !old.IsClosed && c.Status != STATUS_ESCALATED) {
+            Boolean violated = c.SLA_Breached__c && !old.SLA_Breached__c;
+            if (violated) {
+                c.SLA_Breached__c = false;              // consume the signal: the next violation flips it again
+                c.SLA_Violated_On__c = System.now();
+            }
+            if (violated && !old.IsClosed && old.Status != STATUS_ESCALATED && c.Status != STATUS_ESCALATED) {
                 c.Status = STATUS_ESCALATED;
             }
             if (isEscalation(c, old)) escalating.add(c);
