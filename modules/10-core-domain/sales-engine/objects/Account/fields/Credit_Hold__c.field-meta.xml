@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Credit_Hold__c</fullName>
+    <defaultValue>false</defaultValue>
+    <description>Set by Finance. Opportunities for accounts on credit hold cannot be Closed Won.</description>
+    <inlineHelpText>Account is on credit hold: deals cannot be closed won until Finance releases the hold.</inlineHelpText>
+    <label>Credit Hold</label>
+    <trackHistory>false</trackHistory>
+    <type>Checkbox</type>
+</CustomField>

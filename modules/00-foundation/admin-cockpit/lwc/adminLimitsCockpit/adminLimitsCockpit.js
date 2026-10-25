@@ -1,28 +1,55 @@
-import { LightningElement, wire } from 'lwc';
+import { LightningElement } from 'lwc';
 import getAdminCockpitSnapshot from '@salesforce/apex/OrgLimitsService.getAdminCockpitSnapshot';
+
+const BADGE_CLASS = {
+    OK: 'slds-badge slds-theme_success',
+    WARNING: 'slds-badge slds-theme_warning',
+    CRITICAL: 'slds-badge slds-theme_error'
+};
 
 export default class AdminLimitsCockpit extends LightningElement {
     snapshot;
-    isLoading = true;
+    errorMessage;
+    isLoading = false;
 
-    @wire(getAdminCockpitSnapshot)
-    wiredSnapshot({ error, data }) {
-        this.isLoading = false;
-        if (data) {
+    connectedCallback() {
+        this.loadSnapshot();
+    }
+
+    get hasErrors() {
+        return this.snapshot?.recentErrors?.length > 0;
+    }
+
+    get showNoErrors() {
+        return this.snapshot?.errorFeedAvailable && !this.hasErrors;
+    }
+
+    async loadSnapshot() {
+        this.isLoading = true;
+        try {
+            const data = await getAdminCockpitSnapshot();
             this.snapshot = {
-                limits: data.limits.map(l => ({
+                ...data,
+                overallBadgeClass: BADGE_CLASS[data.overallStatus] ?? BADGE_CLASS.OK,
+                limits: data.limits.map((l) => ({
                     ...l,
-                    formattedPercent: Math.round(l.percentUsed),
-                    badgeVariant: l.status === 'CRITICAL' ? 'error' : (l.status === 'WARNING' ? 'warning' : 'success'),
+                    badgeClass: BADGE_CLASS[l.status] ?? BADGE_CLASS.OK,
                     progressVariant: l.status === 'CRITICAL' ? 'expired' : 'base'
                 })),
-                recentErrors: data.recentErrors.map(e => ({
+                recentErrors: data.recentErrors.map((e) => ({
                     ...e,
-                    badgeVariant: e.severity === 'CRITICAL' || e.severity === 'ERROR' ? 'error' : 'inverse'
+                    badgeClass: e.severity === 'ERROR' ? BADGE_CLASS.CRITICAL : BADGE_CLASS.WARNING
                 }))
             };
-        } else if (error) {
-            console.error('Error fetching org telemetry:', error);
+            this.errorMessage = undefined;
+        } catch (error) {
+            this.errorMessage = error?.body?.message ?? 'Unable to load org telemetry.';
+        } finally {
+            this.isLoading = false;
         }
+    }
+
+    handleRefresh() {
+        this.loadSnapshot();
     }
 }

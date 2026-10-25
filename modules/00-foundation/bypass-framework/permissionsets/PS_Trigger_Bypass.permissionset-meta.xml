@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<PermissionSet xmlns="http://soap.sforce.com/2006/04/metadata">
+    <customPermissions>
+        <enabled>true</enabled>
+        <name>Bypass_Triggers</name>
+    </customPermissions>
+    <description>Skips all TriggerHandler logic for the assigned user. Assign only to integration and data-migration users, and remove after the load.</description>
+    <hasActivationRequired>false</hasActivationRequired>
+    <label>Trigger Bypass</label>
+</PermissionSet>

@@ -1,0 +1,19 @@
+# Salesforce DX local state
+.sf/
+.sfdx/
+.localdevserver/
+deploy-options.json
+
+# LWC / tooling
+node_modules/
+coverage/
+.eslintcache
+jsconfig.json
+**/lwc/jsconfig.json
+**/.eslintrc.json
+
+# Logs & OS
+*.log
+.DS_Store
+.vscode/
+.idea/

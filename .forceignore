@@ -1,0 +1,19 @@
+# Files that are never deployed to an org
+package.xml
+**/jsconfig.json
+**/.eslintrc.json
+**/__tests__/**
+**/README.md
+
+# LWC configuration files
+**/tsconfig.json
+**/*.ts
+
+# Later-phase scaffolding that does not deploy yet. Remove each entry when its phase is implemented.
+# Phase 3 (Service Desk): PS_Service_Agent does not exist yet
+modules/10-core-domain/service-desk/permissionsetgroups/PSG_Service_Agent.permissionsetgroup-meta.xml
+# Phase 4 (CapEx): joined report/dashboard metadata is incomplete
+modules/10-core-domain/reports/reports/CapEx_Reports*
+modules/10-core-domain/reports/reports/CapEx_Reports/**
+modules/10-core-domain/dashboards/dashboards/CapEx_Dashboards*
+modules/10-core-domain/dashboards/dashboards/CapEx_Dashboards/**

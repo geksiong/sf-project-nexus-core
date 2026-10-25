@@ -6,24 +6,39 @@ You are assisting in building **Nexus Core**, an enterprise-grade, modular Sales
 
 ## 1. Scratch Org Bootstrap & Verification Recipe
 
-When executing tasks or testing deployments in an ephemeral scratch org, follow this exact CLI sequence:
+When executing tasks or testing deployments in an ephemeral scratch org, use the bootstrap script (Phases 1-4, headless profile):
 
 ```bash
-# 1. Create scratch org (Phases 1-4 use headless profile)
-sf org create scratch -f config/project-scratch-def-headless.json -a nexus-dev -d 1 --set-default
+scripts/org-init/setup-scratch-headless.sh --alias nexus-dev --dev-hub DevHubGS --days 1
+# Re-run against an existing org: add --skip-create; skip the test run: add --skip-tests
+```
 
-# 2. Deploy Foundation and Core Domain modules
-sf project deploy start -m ApexClass,CustomObject,CustomMetadata,PermissionSet,PermissionSetGroup,Flow,LightningComponentBundle
+It performs this sequence (verified on Salesforce CLI 2.155):
 
-# 3. Assign Permission Set Group to the default running user
-sf org assign permsetgroup -n PSG_Sales_Representative
+```bash
+# 1. Create scratch org (-y = duration in days; -d means --set-default in current CLI versions)
+sf org create scratch -f config/project-scratch-def-headless.json -a nexus-dev -y 1 --set-default
 
-# 4. Seed sample test data for instant functional verification
+# 2. Install Nebula Logger (unlocked, no namespace) - 00-foundation depends on it
+sf package install -o nexus-dev --package 04tg7000000IzRdAAK --security-type AdminsOnly --wait 20 --no-prompt
+
+# 3. Deploy Foundation and Core Domain modules by source directory (ADR 0005 inner loop)
+sf project deploy start -d modules/00-foundation -d modules/10-core-domain
+
+# 4. Permissions: there is no `sf org assign permsetgroup`; PSGs are assigned via a PermissionSetAssignment record
+sf org assign permset -n PS_Nexus_Admin -n PS_Sales_Admin -n LoggerAdmin
+sf data create record -s PermissionSetAssignment -v "AssigneeId=<adminUserId> PermissionSetGroupId=<PSG_Sales_Representative Id>"
+
+# 5. Create the Sales Manager persona (config/users/) and set it as the admin user's manager (approval routing)
+
+# 6. Seed sample test data for instant functional verification
 sf data import tree --plan data/data-plan.json
 
-# 5. Run in-memory unit tests
-sf apex run test -c -r human --code-coverage
+# 7. Run in-memory unit tests (Nexus classes only - RunLocalTests also runs ~1,300 Nebula Logger tests)
+sf apex run test -n TriggerHandlerTest -n OpportunityServiceTest ... -c -r human   # every *Test.cls under modules/
 ```
+
+Later-phase scaffolding that does not deploy yet is listed in `.forceignore`; remove those entries as each phase is implemented.
 
 ---
 

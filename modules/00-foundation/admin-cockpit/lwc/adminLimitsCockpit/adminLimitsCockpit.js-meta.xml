@@ -3,6 +3,7 @@
     <apiVersion>62.0</apiVersion>
     <isExposed>true</isExposed>
     <masterLabel>Admin Limits Cockpit</masterLabel>
+    <description>Live org limit telemetry (System.OrgLimits) and Nebula Logger error feed.</description>
     <targets>
         <target>lightning__AppPage</target>
         <target>lightning__HomePage</target>

@@ -1,0 +1,9 @@
+{
+  "FirstName": "Sam",
+  "LastName": "Manager",
+  "Alias": "smgr",
+  "Email": "sales.manager@nexuscore.example.com",
+  "profileName": "Standard User",
+  "permsets": ["PS_Sales_Rep"],
+  "generatePassword": true
+}

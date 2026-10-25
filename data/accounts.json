@@ -9,7 +9,8 @@
       "Industry": "Manufacturing",
       "Type": "Customer - Direct",
       "BillingCity": "Chicago",
-      "BillingCountry": "USA"
+      "BillingCountry": "USA",
+      "Credit_Hold__c": false
     },
     {
       "attributes": {
@@ -20,7 +21,8 @@
       "Industry": "Healthcare",
       "Type": "Customer - Direct",
       "BillingCity": "Boston",
-      "BillingCountry": "USA"
+      "BillingCountry": "USA",
+      "Credit_Hold__c": false
     },
     {
       "attributes": {
@@ -31,7 +33,20 @@
       "Industry": "Technology",
       "Type": "Channel Partner / Reseller",
       "BillingCity": "San Francisco",
-      "BillingCountry": "USA"
+      "BillingCountry": "USA",
+      "Credit_Hold__c": false
+    },
+    {
+      "attributes": {
+        "type": "Account",
+        "referenceId": "AccRef4"
+      },
+      "Name": "Globex Retail Group",
+      "Industry": "Retail",
+      "Type": "Customer - Channel",
+      "BillingCity": "Dallas",
+      "BillingCountry": "USA",
+      "Credit_Hold__c": true
     }
   ]
 }

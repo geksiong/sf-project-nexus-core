@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<PermissionSet xmlns="http://soap.sforce.com/2006/04/metadata">
+    <classAccesses>
+        <apexClass>OrgLimitsService</apexClass>
+        <enabled>true</enabled>
+    </classAccesses>
+    <description>Access to the Nexus Core Admin Cockpit. Pair with Nebula Logger's LoggerLogViewer (or LoggerAdmin) to see the error feed.</description>
+    <hasActivationRequired>false</hasActivationRequired>
+    <label>Nexus Admin Cockpit</label>
+    <tabSettings>
+        <tab>Nexus_Admin_Cockpit</tab>
+        <visibility>Visible</visibility>
+    </tabSettings>
+</PermissionSet>

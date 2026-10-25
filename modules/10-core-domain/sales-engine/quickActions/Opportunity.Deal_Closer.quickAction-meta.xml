@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<QuickAction xmlns="http://soap.sforce.com/2006/04/metadata">
+    <description>Guided Deal Closer: close the opportunity as Won or Lost with stage-gate checks.</description>
+    <flowDefinition>Opportunity_Deal_Closer</flowDefinition>
+    <label>Deal Closer</label>
+    <optionsCreateFeedItem>false</optionsCreateFeedItem>
+    <type>Flow</type>
+</QuickAction>

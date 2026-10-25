@@ -2,36 +2,91 @@
   "records": [
     {
       "attributes": {
-        "type": "Opportunity"
+        "type": "Opportunity",
+        "referenceId": "OppRef1"
       },
       "Name": "Acme Industrial IoT Expansion",
       "AccountId": "@AccRef1",
       "StageName": "Proposal/Price Quote",
-      "Amount": 150000.00,
+      "Amount": 150000.0,
       "CloseDate": "2026-12-15",
-      "LeadSource": "Partner Referral"
+      "LeadSource": "Partner Referral",
+      "Discount_Percentage__c": 15
     },
     {
       "attributes": {
-        "type": "Opportunity"
+        "type": "Opportunity",
+        "referenceId": "OppRef2"
       },
       "Name": "Apex Clinic Modernization",
       "AccountId": "@AccRef2",
       "StageName": "Closed Won",
-      "Amount": 280000.00,
+      "Amount": 280000.0,
       "CloseDate": "2026-10-01",
       "LeadSource": "Trade Show"
     },
     {
       "attributes": {
-        "type": "Opportunity"
+        "type": "Opportunity",
+        "referenceId": "OppRef3"
       },
       "Name": "Nexus Cloud Partner Onboarding",
       "AccountId": "@AccRef3",
       "StageName": "Negotiation/Review",
-      "Amount": 75000.00,
+      "Amount": 75000.0,
       "CloseDate": "2026-11-30",
-      "LeadSource": "Direct Referral"
+      "LeadSource": "Direct Referral",
+      "Discount_Percentage__c": 30
+    },
+    {
+      "attributes": {
+        "type": "Opportunity",
+        "referenceId": "OppRef4"
+      },
+      "Name": "Acme Predictive Maintenance Pilot",
+      "AccountId": "@AccRef1",
+      "StageName": "Closed Won",
+      "Amount": 60000.0,
+      "CloseDate": "2026-08-20",
+      "LeadSource": "Web"
+    },
+    {
+      "attributes": {
+        "type": "Opportunity",
+        "referenceId": "OppRef5"
+      },
+      "Name": "Apex Telehealth Rollout",
+      "AccountId": "@AccRef2",
+      "StageName": "Prospecting",
+      "Amount": 120000.0,
+      "CloseDate": "2027-02-15",
+      "LeadSource": "Web",
+      "Discount_Percentage__c": 5
+    },
+    {
+      "attributes": {
+        "type": "Opportunity",
+        "referenceId": "OppRef6"
+      },
+      "Name": "Globex POS Refresh",
+      "AccountId": "@AccRef4",
+      "StageName": "Qualification",
+      "Amount": 45000.0,
+      "CloseDate": "2026-12-31",
+      "LeadSource": "Phone Inquiry"
+    },
+    {
+      "attributes": {
+        "type": "Opportunity",
+        "referenceId": "OppRef7"
+      },
+      "Name": "Nexus Reseller Enablement",
+      "AccountId": "@AccRef3",
+      "StageName": "Closed Lost",
+      "Amount": 40000.0,
+      "CloseDate": "2026-09-15",
+      "LeadSource": "Partner Referral",
+      "Loss_Reason__c": "Competitor"
     }
   ]
 }
