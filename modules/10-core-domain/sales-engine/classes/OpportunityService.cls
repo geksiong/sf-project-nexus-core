@@ -22,6 +22,12 @@ public with sharing class OpportunityService {
 
     private static final String PRIMARY_CONTACT_ROLE = 'Decision Maker';
 
+    /** @description DML status codes raised by stage gates (addError) and approval record locks. */
+    private static final Set<StatusCode> BUSINESS_RULE_STATUS_CODES = new Set<StatusCode>{
+        StatusCode.FIELD_CUSTOM_VALIDATION_EXCEPTION,
+        StatusCode.ENTITY_IS_LOCKED
+    };
+
     /** @description Approval tiers ordered by threshold, highest first. */
     @TestVisible
     private static List<Discount_Approval_Tier__mdt> approvalTiers {
@@ -167,7 +173,7 @@ public with sharing class OpportunityService {
             results.add(new CloseOpportunityAction.Result());
             String inputError = validateCloseRequest(req, requestIndexByOppId);
             if (inputError != null) {
-                fail(results[i], ERROR_INVALID_INPUT, inputError, req.opportunityId);
+                fail(results[i], ERROR_INVALID_INPUT, inputError, req.opportunityId, true);
                 continue;
             }
             requestIndexByOppId.put(req.opportunityId, i);
@@ -178,7 +184,7 @@ public with sharing class OpportunityService {
         );
         for (Id oppId : new List<Id>(requestIndexByOppId.keySet())) {
             if (!oppsById.containsKey(oppId)) {
-                fail(results[requestIndexByOppId.remove(oppId)], ERROR_NOT_FOUND, 'Opportunity not found or not accessible.', oppId);
+                fail(results[requestIndexByOppId.remove(oppId)], ERROR_NOT_FOUND, 'Opportunity not found or not accessible.', oppId, true);
             }
         }
 
@@ -208,7 +214,8 @@ public with sharing class OpportunityService {
                 results[i].payload.opportunityId = oppUpdates[j].Id;
                 results[i].payload.stageName = oppUpdates[j].StageName;
             } else {
-                fail(results[i], ERROR_DML, joinErrors(saveResults[j].getErrors()), oppUpdates[j].Id);
+                List<Database.Error> errors = saveResults[j].getErrors();
+                fail(results[i], ERROR_DML, joinErrors(errors), oppUpdates[j].Id, isBusinessRuleRejection(errors));
             }
         }
 
@@ -371,17 +378,35 @@ public with sharing class OpportunityService {
             if (!upsertResults[j].isSuccess()) {
                 Integer i = roleIndexes[j];
                 Id oppId = requests[i].opportunityId;
-                fail(results[i], ERROR_DML, 'Could not assign primary contact: ' + joinErrors(upsertResults[j].getErrors()), oppId);
+                fail(results[i], ERROR_DML, 'Could not assign primary contact: ' + joinErrors(upsertResults[j].getErrors()), oppId, false);
                 requestIndexByOppId.remove(oppId);
             }
         }
     }
 
-    private static void fail(CloseOpportunityAction.Result result, String code, String message, Id recordId) {
+    /**
+     * @description Marks a request failed. Expected rejections (bad input, stage gates, approval locks)
+     * log at WARN so the Admin Cockpit error feed stays reserved for genuine system failures (ERROR).
+     */
+    private static void fail(CloseOpportunityAction.Result result, String code, String message, Id recordId, Boolean isExpected) {
         result.isSuccess = false;
         result.errorCode = code;
         result.errorMessage = message;
-        Logger.error('CloseOpportunityAction ' + code + ': ' + message, recordId);
+        String logMessage = 'CloseOpportunityAction ' + code + ': ' + message;
+        if (isExpected) {
+            Logger.warn(logMessage, recordId);
+        } else {
+            Logger.error(logMessage, recordId);
+        }
+    }
+
+    private static Boolean isBusinessRuleRejection(List<Database.Error> errors) {
+        for (Database.Error err : errors) {
+            if (!BUSINESS_RULE_STATUS_CODES.contains(err.getStatusCode())) {
+                return false;
+            }
+        }
+        return true;
     }
 
     private static String joinErrors(List<Database.Error> errors) {

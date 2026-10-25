@@ -14,6 +14,9 @@ public with sharing class OrgLimitsService {
     private static final Decimal CRITICAL_THRESHOLD = 85;
     private static final Integer ERROR_FEED_SIZE = 10;
     private static final Set<String> ERROR_FEED_LEVELS = new Set<String>{ 'ERROR', 'WARN' };
+    @TestVisible
+    private static final String ERROR_FEED_NO_ACCESS =
+        'Error feed unavailable: assign the LoggerLogViewer (or LoggerAdmin) permission set to view Nebula Logger entries.';
 
     // Ordered list of monitored limits: System.OrgLimits key => display label
     private static final List<List<String>> MONITORED_LIMITS = new List<List<String>>{
@@ -60,6 +63,13 @@ public with sharing class OrgLimitsService {
         payload.recentErrors = new List<LogSummaryItem>();
         payload.errorFeedAvailable = true;
 
+        if (!hasErrorFeedAccess()) {
+            // Expected for non-log-viewers: report it without an exception or a log entry per page load.
+            payload.errorFeedAvailable = false;
+            payload.errorFeedMessage = ERROR_FEED_NO_ACCESS;
+            return payload;
+        }
+
         try {
             for (LogEntry__c entry : LogEntriesSelector.selectRecentByLevels(ERROR_FEED_LEVELS, ERROR_FEED_SIZE)) {
                 LogSummaryItem logItem = new LogSummaryItem();
@@ -71,13 +81,22 @@ public with sharing class OrgLimitsService {
                 payload.recentErrors.add(logItem);
             }
         } catch (Exception ex) {
-            // Most commonly the running user lacks Nebula Logger read access (LoggerLogViewer).
             payload.errorFeedAvailable = false;
             payload.errorFeedMessage = 'Error feed unavailable: ' + ex.getMessage();
             Logger.error('Admin Cockpit failed to read the Nebula Logger error feed', ex);
             Logger.saveLog();
         }
         return payload;
+    }
+
+    /** @description Object and field read access needed by LogEntriesSelector (granted by LoggerLogViewer). */
+    @TestVisible
+    private static Boolean hasErrorFeedAccess() {
+        return Schema.SObjectType.LogEntry__c.isAccessible() &&
+            Schema.SObjectType.LogEntry__c.fields.Message__c.isAccessible() &&
+            Schema.SObjectType.LogEntry__c.fields.LoggingLevel__c.isAccessible() &&
+            Schema.SObjectType.LogEntry__c.fields.OriginLocation__c.isAccessible() &&
+            Schema.SObjectType.LogEntry__c.fields.Timestamp__c.isAccessible();
     }
 
     @TestVisible

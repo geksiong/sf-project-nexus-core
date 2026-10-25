@@ -152,6 +152,31 @@ private class CloseOpportunityActionTest {
     }
 
     @IsTest
+    static void expectedRejectionsLogWarnSystemFailuresLogError() {
+        List<Opportunity> opps = [SELECT Id FROM Opportunity LIMIT 2];
+        Id fakeContactId = TestDataFactory.getFakeId(Contact.SObjectType);
+
+        System.runAs(SalesEngineTestFixtures.salesAdmin()) {
+            Test.startTest();
+            // Stage gate (no primary contact) is an expected business rejection.
+            executeOne(request(opps[0].Id, 'Won', null, null));
+            // A contact role that cannot be saved is an unexpected system failure.
+            executeOne(request(opps[1].Id, 'Won', fakeContactId, null));
+            Test.stopTest();
+        }
+
+        Map<String, String> levelByCode = new Map<String, String>();
+        for (LogEntry__c entry : [SELECT LoggingLevel__c, Message__c FROM LogEntry__c]) {
+            if (!entry.Message__c.startsWith('CloseOpportunityAction')) {
+                continue; // Message__c is long text and cannot be filtered in SOQL
+            }
+            levelByCode.put(entry.Message__c.contains('Could not assign primary contact') ? 'contact' : 'gate', entry.LoggingLevel__c);
+        }
+        Assert.areEqual('WARN', levelByCode.get('gate'), 'Stage gate rejections are expected: ' + levelByCode);
+        Assert.areEqual('ERROR', levelByCode.get('contact'), 'Unexpected DML failures stay ERROR: ' + levelByCode);
+    }
+
+    @IsTest
     static void salesRepWithPsgCanCloseDealsInUserMode() {
         User rep = SalesEngineTestFixtures.getUser(SalesEngineTestFixtures.REP_LAST_NAME);
         Opportunity opp = [SELECT Id FROM Opportunity LIMIT 1];

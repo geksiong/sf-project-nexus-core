@@ -36,6 +36,21 @@ private class BypassServiceTest {
     }
 
     @IsTest
+    static void triggerBypassPermissionSetGrantsCustomPermission() {
+        User migrationUser = TestDataFactory.createTestUser('Standard User', null);
+        insert migrationUser;
+        insert new PermissionSetAssignment(
+            AssigneeId = migrationUser.Id,
+            PermissionSetId = [SELECT Id FROM PermissionSet WHERE Name = 'PS_Trigger_Bypass'].Id
+        );
+
+        System.runAs(migrationUser) {
+            BypassService.hasBypassPermission = null; // force a real FeatureManagement check as this user
+            Assert.isTrue(BypassService.isTriggerBypassed('Opportunity'));
+        }
+    }
+
+    @IsTest
     static void blankObjectNameIsNeverBypassed() {
         Assert.isFalse(BypassService.isTriggerBypassed(''));
         Assert.isFalse(BypassService.isTriggerBypassed(null));

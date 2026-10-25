@@ -49,7 +49,7 @@ assigns permissions, creates the Sales Manager persona, seeds `data/`, and runs 
 | Module | Component | Purpose |
 | --- | --- | --- |
 | `00-foundation/trigger-framework` | `TriggerHandler` | Context routing, recursion guard (`setMaxLoopCount`), handler bypass |
-| `00-foundation/bypass-framework` | `BypassService`, `Trigger_Setting__mdt`, `Bypass_Triggers` custom permission | Transactional, org-wide (per object) and per-user trigger bypass |
+| `00-foundation/bypass-framework` | `BypassService`, `Trigger_Setting__mdt`, `Bypass_Triggers` custom permission (granted by `PS_Trigger_Bypass`) | Transactional, org-wide (per object) and per-user trigger bypass |
 | `00-foundation/admin-cockpit` | `OrgLimitsService`, `LogEntriesSelector`, `adminLimitsCockpit` LWC, **Admin Cockpit** tab | Live `System.OrgLimits` telemetry (OK < 70% ≤ WARNING ≤ 85% < CRITICAL) and Nebula Logger ERROR/WARN feed |
 | `00-foundation/test-framework` | `TestDataFactory` | Standard-object test builders |
 | `10-core-domain/sales-engine` | `OpportunityTrigger` → `OpportunityTriggerHandler` → `OpportunityService` | Discount approval policy and stage gates |
