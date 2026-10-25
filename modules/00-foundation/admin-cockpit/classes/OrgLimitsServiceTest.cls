@@ -61,37 +61,43 @@ private class OrgLimitsServiceTest {
     }
 
     @IsTest
-    static void feedShowsErrorAndWarnEntriesToLogViewers() {
-        User viewer = TestDataFactory.createTestUser('Standard User', null);
-        insert viewer;
-        insert new PermissionSetAssignment(
-            AssigneeId = viewer.Id,
-            PermissionSetId = [SELECT Id FROM PermissionSet WHERE Name = 'LoggerLogViewer'].Id
-        );
+    static void feedMapsErrorAndWarnEntriesFromSelector() {
+        Datetime loggedAt = Datetime.now();
+        TestStub logEntries = new TestStub()
+            .returns(
+                'selectRecentByLevels',
+                new List<LogEntry__c>{
+                    new LogEntry__c(
+                        Id = TestDataFactory.getFakeId(LogEntry__c.SObjectType),
+                        Message__c = 'Simulated cockpit error',
+                        LoggingLevel__c = 'ERROR',
+                        OriginLocation__c = 'SampleService.execute',
+                        Timestamp__c = loggedAt
+                    ),
+                    new LogEntry__c(
+                        Id = TestDataFactory.getFakeId(LogEntry__c.SObjectType),
+                        Message__c = 'Simulated cockpit warning',
+                        LoggingLevel__c = 'WARN',
+                        Timestamp__c = loggedAt
+                    )
+                }
+            );
+        LogEntriesSelector.instance = (LogEntriesSelector) logEntries.create(LogEntriesSelector.class);
 
-        Test.startTest();
-        Logger.error('Simulated cockpit error');
-        Logger.warn('Simulated cockpit warning');
-        Logger.info('Simulated cockpit info');
-        Logger.saveLog();
-        Test.stopTest(); // delivers the Nebula Logger platform events, creating LogEntry__c records
-
-        OrgLimitsService.CockpitPayload payload;
-        System.runAs(viewer) {
-            payload = OrgLimitsService.getAdminCockpitSnapshot();
-        }
+        OrgLimitsService.CockpitPayload payload = OrgLimitsService.getAdminCockpitSnapshot();
 
         Assert.isTrue(payload.errorFeedAvailable, 'Feed should be available: ' + payload.errorFeedMessage);
-        Set<String> messages = new Set<String>();
-        for (OrgLimitsService.LogSummaryItem item : payload.recentErrors) {
-            messages.add(item.message);
-            Assert.isTrue(item.severity == 'ERROR' || item.severity == 'WARN', 'Unexpected level ' + item.severity);
-            Assert.isNotNull(item.loggedTime);
-            Assert.isNotNull(item.logId);
-        }
-        Assert.isTrue(messages.contains('Simulated cockpit error'), String.valueOf(messages));
-        Assert.isTrue(messages.contains('Simulated cockpit warning'), String.valueOf(messages));
-        Assert.isFalse(messages.contains('Simulated cockpit info'), 'INFO entries are excluded from the feed');
+        Assert.areEqual(2, payload.recentErrors.size());
+        OrgLimitsService.LogSummaryItem first = payload.recentErrors[0];
+        Assert.areEqual('Simulated cockpit error', first.message);
+        Assert.areEqual('ERROR', first.severity);
+        Assert.areEqual('SampleService.execute', first.origin);
+        Assert.areEqual(loggedAt, first.loggedTime);
+        Assert.isNotNull(first.logId);
+
+        List<Object> args = logEntries.lastArguments('selectRecentByLevels');
+        Assert.areEqual(new Set<String>{ 'ERROR', 'WARN' }, (Set<String>) args[0], 'Feed shows ERROR and WARN only');
+        Assert.areEqual(10, (Integer) args[1], 'Feed is capped at 10 entries');
     }
 
     private static List<OrgLimitsService.LimitItem> items(List<String> statuses) {

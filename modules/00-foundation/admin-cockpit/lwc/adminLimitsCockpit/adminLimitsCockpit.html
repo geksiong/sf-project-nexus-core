@@ -19,7 +19,9 @@
                     <h3 class="slds-text-title_bold">Org Resource Telemetry</h3>
                     <div class="slds-text-body_small slds-text-color_weak">
                         Overall health
-                        <span class={snapshot.overallBadgeClass} data-id="overall-status">{snapshot.overallStatus}</span>
+                        <span class={snapshot.overallBadgeClass} data-id="overall-status"
+                            >{snapshot.overallStatus}</span
+                        >
                         &middot; as of
                         <lightning-formatted-date-time
                             value={snapshot.generatedAt}
@@ -31,7 +33,10 @@
                 </div>
                 <div class="slds-grid slds-wrap slds-gutters_x-small slds-m-bottom_large">
                     <template for:each={snapshot.limits} for:item="lim">
-                        <div key={lim.name} class="slds-col slds-size_1-of-1 slds-medium-size_1-of-2 slds-m-bottom_small">
+                        <div
+                            key={lim.name}
+                            class="slds-col slds-size_1-of-1 slds-medium-size_1-of-2 slds-m-bottom_small"
+                        >
                             <div class="slds-box slds-box_x-small" data-id="limit-tile">
                                 <div class="slds-grid slds-grid_align-spread slds-m-bottom_xx-small">
                                     <span class="slds-text-body_regular">{lim.label}</span>
@@ -42,7 +47,9 @@
                                     size="large"
                                     variant={lim.progressVariant}
                                 ></lightning-progress-bar>
-                                <div class="slds-text-align_right slds-text-color_weak slds-text-body_small slds-m-top_xx-small">
+                                <div
+                                    class="slds-text-align_right slds-text-color_weak slds-text-body_small slds-m-top_xx-small"
+                                >
                                     {lim.current} / {lim.max} ({lim.percentUsed}%)
                                 </div>
                             </div>
@@ -54,10 +61,14 @@
                     <table class="slds-table slds-table_cell-buffer slds-table_bordered slds-table_fixed-layout">
                         <thead>
                             <tr class="slds-line-height_reset">
-                                <th scope="col" style="width: 7rem"><div class="slds-truncate" title="Severity">Severity</div></th>
+                                <th scope="col" style="width: 7rem">
+                                    <div class="slds-truncate" title="Severity">Severity</div>
+                                </th>
                                 <th scope="col"><div class="slds-truncate" title="Message">Message</div></th>
                                 <th scope="col"><div class="slds-truncate" title="Origin">Origin</div></th>
-                                <th scope="col" style="width: 11rem"><div class="slds-truncate" title="Timestamp">Timestamp</div></th>
+                                <th scope="col" style="width: 11rem">
+                                    <div class="slds-truncate" title="Timestamp">Timestamp</div>
+                                </th>
                             </tr>
                         </thead>
                         <tbody>
@@ -85,7 +96,11 @@
                     <p class="slds-text-color_success" data-id="no-errors">No ERROR or WARN entries logged.</p>
                 </template>
                 <template lwc:if={snapshot.errorFeedMessage}>
-                    <div class="slds-notify slds-notify_alert slds-alert_warning" role="alert" data-id="feed-unavailable">
+                    <div
+                        class="slds-notify slds-notify_alert slds-alert_warning"
+                        role="alert"
+                        data-id="feed-unavailable"
+                    >
                         {snapshot.errorFeedMessage}
                     </div>
                 </template>

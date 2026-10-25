@@ -15,8 +15,7 @@ public with sharing class OrgLimitsService {
     private static final Integer ERROR_FEED_SIZE = 10;
     private static final Set<String> ERROR_FEED_LEVELS = new Set<String>{ 'ERROR', 'WARN' };
     @TestVisible
-    private static final String ERROR_FEED_NO_ACCESS =
-        'Error feed unavailable: assign the LoggerLogViewer (or LoggerAdmin) permission set to view Nebula Logger entries.';
+    private static final String ERROR_FEED_NO_ACCESS = 'Error feed unavailable: assign the LoggerLogViewer (or LoggerAdmin) permission set to view Nebula Logger entries.';
 
     // Ordered list of monitored limits: System.OrgLimits key => display label
     private static final List<List<String>> MONITORED_LIMITS = new List<List<String>>{
@@ -31,27 +30,44 @@ public with sharing class OrgLimitsService {
     };
 
     public class LimitItem {
-        @AuraEnabled public String name { get; set; }
-        @AuraEnabled public String label { get; set; }
-        @AuraEnabled public Integer current { get; set; }
-        @AuraEnabled public Integer max { get; set; }
-        @AuraEnabled public Decimal percentUsed { get; set; }
-        @AuraEnabled public String status { get; set; }
+        @AuraEnabled
+        public String name { get; set; }
+        @AuraEnabled
+        public String label { get; set; }
+        @AuraEnabled
+        public Integer current { get; set; }
+        @AuraEnabled
+        public Integer max { get; set; }
+        @AuraEnabled
+        public Decimal percentUsed { get; set; }
+        @AuraEnabled
+        public String status { get; set; }
     }
     public class LogSummaryItem {
-        @AuraEnabled public String logId { get; set; }
-        @AuraEnabled public String message { get; set; }
-        @AuraEnabled public String origin { get; set; }
-        @AuraEnabled public Datetime loggedTime { get; set; }
-        @AuraEnabled public String severity { get; set; }
+        @AuraEnabled
+        public String logId { get; set; }
+        @AuraEnabled
+        public String message { get; set; }
+        @AuraEnabled
+        public String origin { get; set; }
+        @AuraEnabled
+        public Datetime loggedTime { get; set; }
+        @AuraEnabled
+        public String severity { get; set; }
     }
     public class CockpitPayload {
-        @AuraEnabled public String overallStatus { get; set; }
-        @AuraEnabled public Datetime generatedAt { get; set; }
-        @AuraEnabled public List<LimitItem> limits { get; set; }
-        @AuraEnabled public List<LogSummaryItem> recentErrors { get; set; }
-        @AuraEnabled public Boolean errorFeedAvailable { get; set; }
-        @AuraEnabled public String errorFeedMessage { get; set; }
+        @AuraEnabled
+        public String overallStatus { get; set; }
+        @AuraEnabled
+        public Datetime generatedAt { get; set; }
+        @AuraEnabled
+        public List<LimitItem> limits { get; set; }
+        @AuraEnabled
+        public List<LogSummaryItem> recentErrors { get; set; }
+        @AuraEnabled
+        public Boolean errorFeedAvailable { get; set; }
+        @AuraEnabled
+        public String errorFeedMessage { get; set; }
     }
 
     @AuraEnabled
@@ -71,7 +87,10 @@ public with sharing class OrgLimitsService {
         }
 
         try {
-            for (LogEntry__c entry : LogEntriesSelector.selectRecentByLevels(ERROR_FEED_LEVELS, ERROR_FEED_SIZE)) {
+            for (
+                LogEntry__c entry : LogEntriesSelector.newInstance()
+                    .selectRecentByLevels(ERROR_FEED_LEVELS, ERROR_FEED_SIZE)
+            ) {
                 LogSummaryItem logItem = new LogSummaryItem();
                 logItem.logId = entry.Id;
                 logItem.message = entry.Message__c;

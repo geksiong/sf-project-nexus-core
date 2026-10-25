@@ -124,9 +124,9 @@ public with sharing class OpportunityService {
             return;
         }
 
-        Map<Id, Account> accounts = AccountsSelector.selectByIdWithCreditStatus(accountIds);
+        Map<Id, Account> accounts = AccountsSelector.newInstance().selectByIdWithCreditStatus(accountIds);
         Map<Id, Opportunity> detailedOpps = new Map<Id, Opportunity>(
-            OpportunitiesSelector.selectByIdWithDetails(existingOppIds)
+            OpportunitiesSelector.newInstance().selectByIdWithDetails(existingOppIds)
         );
 
         // Only one record-level error survives per record, so all gate violations are reported together.
@@ -139,8 +139,13 @@ public with sharing class OpportunityService {
 
             if (!isDiscountApprovalSatisfied(opp)) {
                 violations.add(
-                    'Cannot Close/Win an Opportunity until its ' + opp.Discount_Percentage__c + '% discount receives ' +
-                    opp.Approval_Tier__c + ' approval (current status: ' + opp.Discount_Approval_Status__c + ').'
+                    'Cannot Close/Win an Opportunity until its ' +
+                        opp.Discount_Percentage__c +
+                        '% discount receives ' +
+                        opp.Approval_Tier__c +
+                        ' approval (current status: ' +
+                        opp.Discount_Approval_Status__c +
+                        ').'
                 );
             }
 
@@ -180,11 +185,17 @@ public with sharing class OpportunityService {
         }
 
         Map<Id, Opportunity> oppsById = new Map<Id, Opportunity>(
-            OpportunitiesSelector.selectByIdWithDetails(requestIndexByOppId.keySet())
+            OpportunitiesSelector.newInstance().selectByIdWithDetails(requestIndexByOppId.keySet())
         );
         for (Id oppId : new List<Id>(requestIndexByOppId.keySet())) {
             if (!oppsById.containsKey(oppId)) {
-                fail(results[requestIndexByOppId.remove(oppId)], ERROR_NOT_FOUND, 'Opportunity not found or not accessible.', oppId, true);
+                fail(
+                    results[requestIndexByOppId.remove(oppId)],
+                    ERROR_NOT_FOUND,
+                    'Opportunity not found or not accessible.',
+                    oppId,
+                    true
+                );
             }
         }
 
@@ -261,7 +272,7 @@ public with sharing class OpportunityService {
         for (Opportunity opp : opps) {
             ownerIds.add(opp.OwnerId == null ? UserInfo.getUserId() : opp.OwnerId);
         }
-        Map<Id, User> owners = UsersSelector.selectByIdWithManagerChain(ownerIds);
+        Map<Id, User> owners = UsersSelector.newInstance().selectByIdWithManagerChain(ownerIds);
         for (Opportunity opp : opps) {
             User owner = owners.get(opp.OwnerId == null ? UserInfo.getUserId() : opp.OwnerId);
             opp.Executive_Approver__c = owner == null ? null : resolveExecutiveApprover(owner);
@@ -378,7 +389,13 @@ public with sharing class OpportunityService {
             if (!upsertResults[j].isSuccess()) {
                 Integer i = roleIndexes[j];
                 Id oppId = requests[i].opportunityId;
-                fail(results[i], ERROR_DML, 'Could not assign primary contact: ' + joinErrors(upsertResults[j].getErrors()), oppId, false);
+                fail(
+                    results[i],
+                    ERROR_DML,
+                    'Could not assign primary contact: ' + joinErrors(upsertResults[j].getErrors()),
+                    oppId,
+                    false
+                );
                 requestIndexByOppId.remove(oppId);
             }
         }
@@ -388,7 +405,13 @@ public with sharing class OpportunityService {
      * @description Marks a request failed. Expected rejections (bad input, stage gates, approval locks)
      * log at WARN so the Admin Cockpit error feed stays reserved for genuine system failures (ERROR).
      */
-    private static void fail(CloseOpportunityAction.Result result, String code, String message, Id recordId, Boolean isExpected) {
+    private static void fail(
+        CloseOpportunityAction.Result result,
+        String code,
+        String message,
+        Id recordId,
+        Boolean isExpected
+    ) {
         result.isSuccess = false;
         result.errorCode = code;
         result.errorMessage = message;

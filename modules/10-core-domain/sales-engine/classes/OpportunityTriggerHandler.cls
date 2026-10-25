@@ -9,6 +9,9 @@ public with sharing class OpportunityTriggerHandler extends TriggerHandler {
             (List<Opportunity>) updatedRecords,
             (Map<Id, Opportunity>) oldRecordMap
         );
-        OpportunityService.validateStageProgression((List<Opportunity>) updatedRecords, (Map<Id, Opportunity>) oldRecordMap);
+        OpportunityService.validateStageProgression(
+            (List<Opportunity>) updatedRecords,
+            (Map<Id, Opportunity>) oldRecordMap
+        );
     }
 }

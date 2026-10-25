@@ -1,0 +1,149 @@
+# Nexus Core CI (BP-DEVOPS-008): static gates on every PR / push, scratch org test suite on ready PRs.
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize, reopened, ready_for_review]
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      run_scratch_org_tests:
+        description: Run the scratch org test suite (uses 1 of the Dev Hub's daily scratch orgs)
+        type: boolean
+        default: true
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  NODE_VERSION: '24'
+  SF_CLI_VERSION: '2.155.7'
+  CODE_ANALYZER_VERSION: '5.16.0'
+  SF_DISABLE_TELEMETRY: 'true'
+  SF_AUTOUPDATE_DISABLE: 'true'
+
+jobs:
+  static-analysis:
+    name: Gate 1 - Static analysis & schemas
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Prettier
+        run: npm run format:check
+
+      - name: ESLint (LWC)
+        run: npm run lint
+
+      - name: LWC Jest
+        run: npm run test:unit:coverage
+
+      - name: Agentforce / HXL contract schemas
+        run: npm run validate:clt
+
+      - name: Module dependency graph
+        run: npm run audit:deps
+
+      - name: Orphaned metadata & missing permissions
+        run: npm run audit:metadata
+
+      - name: Install Salesforce CLI and Code Analyzer
+        run: |
+          npm install --global @salesforce/cli@${{ env.SF_CLI_VERSION }}
+          sf plugins install code-analyzer@${{ env.CODE_ANALYZER_VERSION }}
+
+      - name: PMD (Recommended + Nexus WITH USER_MODE rules)
+        run: npm run lint:apex -- --output-file code-analyzer-results.html
+
+      - name: Nexus PMD rule regression fixtures
+        run: npm run test:pmd-rules
+
+      - name: Upload Code Analyzer report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: code-analyzer-results
+          path: code-analyzer-results.html
+          if-no-files-found: ignore
+
+  scratch-org-tests:
+    name: Gate 3 - Scratch org test suite
+    needs: static-analysis
+    # Free Developer Edition Dev Hubs allow 6 scratch orgs per day: run on ready PRs and on demand only.
+    if: >-
+      (github.event_name == 'pull_request' && !github.event.pull_request.draft) ||
+      (github.event_name == 'workflow_dispatch' && inputs.run_scratch_org_tests)
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      SF_DEVHUB_AUTH_URL: ${{ secrets.SF_DEVHUB_AUTH_URL }}
+      SCRATCH_ALIAS: ci-${{ github.run_id }}-${{ github.run_attempt }}
+    steps:
+      - name: Check Dev Hub credentials
+        id: devhub
+        run: |
+          if [ -z "$SF_DEVHUB_AUTH_URL" ]; then
+            echo "::warning title=Scratch org tests skipped::Add the SF_DEVHUB_AUTH_URL repository secret (see docs/devops/github-setup.md)."
+            echo "configured=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "configured=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: actions/checkout@v4
+        if: steps.devhub.outputs.configured == 'true'
+
+      - uses: actions/setup-node@v4
+        if: steps.devhub.outputs.configured == 'true'
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Install Salesforce CLI
+        if: steps.devhub.outputs.configured == 'true'
+        run: npm install --global @salesforce/cli@${{ env.SF_CLI_VERSION }}
+
+      - name: Authenticate Dev Hub
+        if: steps.devhub.outputs.configured == 'true'
+        run: |
+          printf '%s' "$SF_DEVHUB_AUTH_URL" > "$RUNNER_TEMP/devhub.url"
+          sf org login sfdx-url --sfdx-url-file "$RUNNER_TEMP/devhub.url" --alias devhub --set-default-dev-hub
+          rm -f "$RUNNER_TEMP/devhub.url"
+
+      - name: Provision scratch org (create, Nebula Logger, deploy, permissions, personas, seed data)
+        if: steps.devhub.outputs.configured == 'true'
+        run: scripts/org-init/setup-scratch-headless.sh --alias "$SCRATCH_ALIAS" --dev-hub devhub --days 1 --skip-tests
+
+      - name: Apex tests with coverage gate
+        if: steps.devhub.outputs.configured == 'true'
+        run: scripts/devops/run-apex-tests.sh --target-org "$SCRATCH_ALIAS" --output-dir test-results
+
+      - name: Upload Apex test results
+        if: always() && steps.devhub.outputs.configured == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: apex-test-results
+          path: test-results/
+          if-no-files-found: ignore
+
+      - name: Delete scratch org
+        if: always() && steps.devhub.outputs.configured == 'true'
+        run: sf org delete scratch --target-org "$SCRATCH_ALIAS" --no-prompt || true

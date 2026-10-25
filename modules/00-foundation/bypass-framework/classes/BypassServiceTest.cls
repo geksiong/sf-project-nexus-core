@@ -41,7 +41,8 @@ private class BypassServiceTest {
         insert migrationUser;
         insert new PermissionSetAssignment(
             AssigneeId = migrationUser.Id,
-            PermissionSetId = [SELECT Id FROM PermissionSet WHERE Name = 'PS_Trigger_Bypass'].Id
+            PermissionSetId = [SELECT Id FROM PermissionSet WHERE Name = 'PS_Trigger_Bypass']
+            .Id
         );
 
         System.runAs(migrationUser) {

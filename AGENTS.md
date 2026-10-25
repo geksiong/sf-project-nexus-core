@@ -34,26 +34,39 @@ sf data create record -s PermissionSetAssignment -v "AssigneeId=<adminUserId> Pe
 # 6. Seed sample test data for instant functional verification
 sf data import tree --plan data/data-plan.json
 
-# 7. Run in-memory unit tests (Nexus classes only - RunLocalTests also runs ~1,300 Nebula Logger tests)
-sf apex run test -n TriggerHandlerTest -n OpportunityServiceTest ... -c -r human   # every *Test.cls under modules/
+# 7. Run Nexus Apex tests with the coverage gate (every *Test.cls in the active modules; RunLocalTests would
+#    also run ~1,300 Nebula Logger tests)
+scripts/devops/run-apex-tests.sh --target-org nexus-dev
 ```
 
-Later-phase scaffolding that does not deploy yet is listed in `.forceignore`; remove those entries as each phase is implemented.
+Active modules (deployed, audited, tested) are listed in `config/devops/nexus-devops.json` `activeModules`; add a module there when its phase starts. Later-phase scaffolding inside an active module that does not deploy yet is listed in `.forceignore`; remove those entries as each phase is implemented.
+
+### 1.1 Quality Gates (run before every commit / PR)
+
+```bash
+npm run verify   # Prettier, ESLint, LWC Jest, CLT/HXL schemas, module boundaries, orphaned metadata, PMD + Nexus rules
+```
+
+CI (`.github/workflows/ci.yml`) runs the same gates plus the scratch org Apex suite (>= 85% Nexus coverage). Do not weaken a gate to make it pass: fix the code, or add a reasoned, phase-tagged entry to the `allowlist` in `config/devops/nexus-devops.json`.
 
 ---
 
 ## 2. Core Architectural Guardrails
 
 ### 2.1 Pragmatic Clean Architecture Standard
+
 Heavy reflection-based frameworks (`fflib`) are prohibited in Nexus Core in favor of **Pragmatic Clean Architecture**:
+
 - **Triggers:** Triggers must be one line: `new SObjectTriggerHandler().run();`
 - **Trigger Handlers:** Must extend `TriggerHandler.cls`. Handlers only route execution context; they contain no business logic or inline SOQL.
-- **Selector Layer:** All SOQL queries must reside in dedicated `*Selector.cls` classes, enforcing explicit field selection and `WITH USER_MODE`. Never write inline SOQL in controllers, invocables, or triggers.
+- **Selector Layer:** All SOQL queries must reside in dedicated `*Selector.cls` classes, enforcing explicit field selection and `WITH USER_MODE`. Never write inline SOQL in controllers, invocables, or triggers. Selectors are `virtual` instances obtained via `XSelector.newInstance()` so unit tests can replace them with `TestStub` mocks (`XSelector.instance = (XSelector) new TestStub().returns(...).create(XSelector.class)`). These rules are enforced by the Nexus PMD ruleset (`config/pmd/nexus-apex-rules.xml`).
 - **Domain Service Layer:** All business logic, validations, and DML orchestration belong in `*Service.cls` classes.
 - **Observability:** Log all caught exceptions using `Nebula Logger` (`Logger.error()`, `Logger.saveLog()`).
 
 ### 2.2 Packaging & Module Dependencies
+
 The project follows a multi-package layout under `modules/`. Modules must only depend downward:
+
 ```text
 modules/
 ├── 00-foundation          (No upstream dependencies)
@@ -67,6 +80,7 @@ modules/
 ```
 
 ### 2.3 Admin Cockpit & Telemetry
+
 - Query org-level resource health using native `System.OrgLimits.getMap()` via `OrgLimitsService.cls`. Do not perform external HTTP callouts to `/limits` from LWC.
 - Alert thresholds: OK (< 70%), WARNING (70% - 85%), CRITICAL (> 85%).
 - Display system health and error feeds inside `adminLimitsCockpit` LWC.
@@ -74,47 +88,52 @@ modules/
 ---
 
 ## 3. Invocable Action & Headless Fabric Standards
+
 All `@InvocableMethod` actions exposed to Flows, Agentforce, or MCP must implement the uniform typed result envelope:
+
 ```apex
 public with sharing class ActionName {
-    public class Request {
-        @InvocableVariable(required=true label='...')
-        public String inputParam;
-    }
-    public class Result {
-        @InvocableVariable(label='Is Success')
-        public Boolean isSuccess;
-        @InvocableVariable(label='Error Code')
-        public String errorCode;
-        @InvocableVariable(label='Error Message')
-        public String errorMessage;
-        @InvocableVariable(label='Payload')
-        public OutputPayload payload;
-    }
-    public class OutputPayload {
-        @InvocableVariable public String fieldName;
-    }
-    @InvocableMethod(label='Action Label' category='Domain')
-    public static List<Result> execute(List<Request> requests) {
-        return DomainService.executeAction(requests);
-    }
+  public class Request {
+    @InvocableVariable(required=true label='...')
+    public String inputParam;
+  }
+  public class Result {
+    @InvocableVariable(label='Is Success')
+    public Boolean isSuccess;
+    @InvocableVariable(label='Error Code')
+    public String errorCode;
+    @InvocableVariable(label='Error Message')
+    public String errorMessage;
+    @InvocableVariable(label='Payload')
+    public OutputPayload payload;
+  }
+  public class OutputPayload {
+    @InvocableVariable
+    public String fieldName;
+  }
+  @InvocableMethod(label='Action Label' category='Domain')
+  public static List<Result> execute(List<Request> requests) {
+    return DomainService.executeAction(requests);
+  }
 }
 ```
 
 ---
 
 ## 4. Experience Cloud Standards (LWR vs. Aura)
+
 - **LWR (Lightweight Web Runtime):** Use for unauthenticated guest/public portals (`lwr-portal/`). Metadata format is `DigitalExperienceBundle`. Must use Light DOM and comply with strict Lightning Web Security (LWS).
 - **Aura Runtime (Partner Central):** Use for authenticated B2B partner portals (`aura-partner-central/`). Metadata format is `ExperienceBundle`. Standard record detail layouts, Deal Registration flows, and Partner Community role sharing.
 
 ---
 
 ## 5. Agentforce, MCP & HXL UI Contracts
+
 - Adhere strictly to the 4-part metadata contract:
   1. CLT Payload (`<action>OutputValues/schema.json`)
   2. CLT Result Wrapper (`<action>Result/schema.json`)
   3. CLT Renderer (`<action>Result/renderer.json`)
   4. HXL UiWidgetBundle (`composition.json` + `schema.json`)
-  5. McpServerDefinition (`.mcpServerDefinition-meta.xml`): 
+  5. McpServerDefinition (`.mcpServerDefinition-meta.xml`):
      - Tools point to the Apex class.
      - Resources point to `ui://widget/lightningType/c__<ResultWrapperCLT>`.

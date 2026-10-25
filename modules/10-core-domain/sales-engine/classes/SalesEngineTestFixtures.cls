@@ -35,7 +35,8 @@ public class SalesEngineTestFixtures {
             assignSalesRepAccess(salesAdmin.Id);
             insert new PermissionSetAssignment(
                 AssigneeId = salesAdmin.Id,
-                PermissionSetId = [SELECT Id FROM PermissionSet WHERE Name = 'PS_Sales_Admin'].Id
+                PermissionSetId = [SELECT Id FROM PermissionSet WHERE Name = 'PS_Sales_Admin']
+                .Id
             );
         }
     }
@@ -51,8 +52,16 @@ public class SalesEngineTestFixtures {
     /** @description Pins the tier thresholds so tests do not depend on org-configured CMDT values. */
     public static void useStandardTiers() {
         OpportunityService.approvalTiers = new List<Discount_Approval_Tier__mdt>{
-            new Discount_Approval_Tier__mdt(DeveloperName = 'Tier_1', Discount_Threshold__c = 10, Approval_Tier__c = 'Tier 1'),
-            new Discount_Approval_Tier__mdt(DeveloperName = 'Tier_2', Discount_Threshold__c = 25, Approval_Tier__c = 'Tier 2')
+            new Discount_Approval_Tier__mdt(
+                DeveloperName = 'Tier_1',
+                Discount_Threshold__c = 10,
+                Approval_Tier__c = 'Tier 1'
+            ),
+            new Discount_Approval_Tier__mdt(
+                DeveloperName = 'Tier_2',
+                Discount_Threshold__c = 25,
+                Approval_Tier__c = 'Tier 2'
+            )
         };
     }
 
@@ -61,8 +70,11 @@ public class SalesEngineTestFixtures {
         PermissionSetGroup psg = [SELECT Id FROM PermissionSetGroup WHERE DeveloperName = 'PSG_Sales_Representative'];
         Test.calculatePermissionSetGroup(psg.Id);
         Boolean alreadyAssigned = ![
-            SELECT Id FROM PermissionSetAssignment WHERE AssigneeId = :userId AND PermissionSetGroupId = :psg.Id
-        ].isEmpty();
+                SELECT Id
+                FROM PermissionSetAssignment
+                WHERE AssigneeId = :userId AND PermissionSetGroupId = :psg.Id
+            ]
+            .isEmpty();
         if (!alreadyAssigned) {
             insert new PermissionSetAssignment(AssigneeId = userId, PermissionSetGroupId = psg.Id);
         }

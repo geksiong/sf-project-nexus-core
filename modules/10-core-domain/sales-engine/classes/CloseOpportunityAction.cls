@@ -8,7 +8,10 @@ public with sharing class CloseOpportunityAction {
         public Id opportunityId;
         @InvocableVariable(required=true label='Outcome' description='Won or Lost')
         public String outcome;
-        @InvocableVariable(label='Primary Contact Id' description='Won only: contact to mark as the primary contact role')
+        @InvocableVariable(
+            label='Primary Contact Id'
+            description='Won only: contact to mark as the primary contact role'
+        )
         public String primaryContactId;
         @InvocableVariable(label='Loss Reason' description='Lost only: value of Opportunity.Loss_Reason__c')
         public String lossReason;
@@ -24,10 +27,16 @@ public with sharing class CloseOpportunityAction {
         public OutputPayload payload;
     }
     public class OutputPayload {
-        @InvocableVariable public Id opportunityId;
-        @InvocableVariable public String stageName;
+        @InvocableVariable
+        public Id opportunityId;
+        @InvocableVariable
+        public String stageName;
     }
-    @InvocableMethod(label='Close Opportunity' description='Closes an opportunity as Won or Lost, enforcing sales engine stage gates.' category='Sales')
+    @InvocableMethod(
+        label='Close Opportunity'
+        description='Closes an opportunity as Won or Lost, enforcing sales engine stage gates.'
+        category='Sales'
+    )
     public static List<Result> execute(List<Request> requests) {
         return OpportunityService.closeDeals(requests);
     }

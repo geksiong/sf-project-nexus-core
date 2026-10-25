@@ -68,13 +68,20 @@ public virtual class TriggerHandler {
     }
 
     // Virtual context methods for override
-    protected virtual void beforeInsert(List<SObject> newRecords) {}
-    protected virtual void beforeUpdate(List<SObject> updatedRecords, Map<Id, SObject> oldRecordMap) {}
-    protected virtual void beforeDelete(List<SObject> deletedRecords, Map<Id, SObject> oldRecordMap) {}
-    protected virtual void afterInsert(List<SObject> newRecords, Map<Id, SObject> newRecordMap) {}
-    protected virtual void afterUpdate(List<SObject> updatedRecords, Map<Id, SObject> oldRecordMap) {}
-    protected virtual void afterDelete(List<SObject> deletedRecords, Map<Id, SObject> oldRecordMap) {}
-    protected virtual void afterUndelete(List<SObject> restoredRecords, Map<Id, SObject> newRecordMap) {}
+    protected virtual void beforeInsert(List<SObject> newRecords) {
+    }
+    protected virtual void beforeUpdate(List<SObject> updatedRecords, Map<Id, SObject> oldRecordMap) {
+    }
+    protected virtual void beforeDelete(List<SObject> deletedRecords, Map<Id, SObject> oldRecordMap) {
+    }
+    protected virtual void afterInsert(List<SObject> newRecords, Map<Id, SObject> newRecordMap) {
+    }
+    protected virtual void afterUpdate(List<SObject> updatedRecords, Map<Id, SObject> oldRecordMap) {
+    }
+    protected virtual void afterDelete(List<SObject> deletedRecords, Map<Id, SObject> oldRecordMap) {
+    }
+    protected virtual void afterUndelete(List<SObject> restoredRecords, Map<Id, SObject> newRecordMap) {
+    }
 
     protected virtual String getSObjectName() {
         if (newRecords != null && !newRecords.isEmpty()) {
@@ -149,5 +156,6 @@ public virtual class TriggerHandler {
         }
     }
 
-    public class TriggerHandlerException extends Exception {}
+    public class TriggerHandlerException extends Exception {
+    }
 }

@@ -40,7 +40,11 @@ private class CloseOpportunityActionTest {
             Assert.isTrue(result.isSuccess, JSON.serialize(result));
             Assert.areEqual('Closed Won', result.payload.stageName);
             Assert.areEqual(opp.Id, result.payload.opportunityId);
-            OpportunityContactRole ocr = [SELECT IsPrimary, Role FROM OpportunityContactRole WHERE OpportunityId = :opp.Id];
+            OpportunityContactRole ocr = [
+                SELECT IsPrimary, Role
+                FROM OpportunityContactRole
+                WHERE OpportunityId = :opp.Id
+            ];
             Assert.isTrue(ocr.IsPrimary);
             Assert.areEqual('Decision Maker', ocr.Role);
         }
@@ -51,12 +55,21 @@ private class CloseOpportunityActionTest {
         System.runAs(SalesEngineTestFixtures.salesAdmin()) {
             Opportunity opp = [SELECT Id FROM Opportunity LIMIT 1];
             Contact c = [SELECT Id FROM Contact LIMIT 1];
-            insert new OpportunityContactRole(OpportunityId = opp.Id, ContactId = c.Id, IsPrimary = false, Role = 'Influencer');
+            insert new OpportunityContactRole(
+                OpportunityId = opp.Id,
+                ContactId = c.Id,
+                IsPrimary = false,
+                Role = 'Influencer'
+            );
 
             CloseOpportunityAction.Result result = executeOne(request(opp.Id, 'Won', c.Id, null));
 
             Assert.isTrue(result.isSuccess, JSON.serialize(result));
-            OpportunityContactRole ocr = [SELECT IsPrimary, Role FROM OpportunityContactRole WHERE OpportunityId = :opp.Id];
+            OpportunityContactRole ocr = [
+                SELECT IsPrimary, Role
+                FROM OpportunityContactRole
+                WHERE OpportunityId = :opp.Id
+            ];
             Assert.isTrue(ocr.IsPrimary);
             Assert.areEqual('Influencer', ocr.Role, 'Existing role is kept');
         }
@@ -170,7 +183,10 @@ private class CloseOpportunityActionTest {
             if (!entry.Message__c.startsWith('CloseOpportunityAction')) {
                 continue; // Message__c is long text and cannot be filtered in SOQL
             }
-            levelByCode.put(entry.Message__c.contains('Could not assign primary contact') ? 'contact' : 'gate', entry.LoggingLevel__c);
+            levelByCode.put(
+                entry.Message__c.contains('Could not assign primary contact') ? 'contact' : 'gate',
+                entry.LoggingLevel__c
+            );
         }
         Assert.areEqual('WARN', levelByCode.get('gate'), 'Stage gate rejections are expected: ' + levelByCode);
         Assert.areEqual('ERROR', levelByCode.get('contact'), 'Unexpected DML failures stay ERROR: ' + levelByCode);

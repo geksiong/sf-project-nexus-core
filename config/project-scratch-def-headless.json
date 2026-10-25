@@ -1,10 +1,7 @@
 {
   "orgName": "Nexus Core Headless Scratch Org",
   "edition": "Developer",
-  "features": [
-    "EnableSetPasswordInApi",
-    "Entitlements"
-  ],
+  "features": ["EnableSetPasswordInApi", "Entitlements"],
   "settings": {
     "lightningExperienceSettings": {
       "enableS1DesktopEnabled": true

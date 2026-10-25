@@ -1,0 +1,12 @@
+node_modules/
+coverage/
+.sf/
+.sfdx/
+.localdevserver/
+package-lock.json
+# Metadata XML is left to the Metadata API's own formatting
+**/*.xml
+# Authored product documents (PRD, ADRs, standards) keep their own formatting
+docs/
+# PMD rule fixtures: line numbers are asserted by config/pmd/fixtures/expected.json
+config/pmd/fixtures/

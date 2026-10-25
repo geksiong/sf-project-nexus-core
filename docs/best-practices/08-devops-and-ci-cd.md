@@ -1,7 +1,7 @@
 # Nexus Core Engineering Standard: DevOps, Packaging Strategy & CI/CD Gates
 
 - **Standard Code:** `BP-DEVOPS-008`
-- **Module Target:** `scripts/devops/`, `.gitlab-ci.yml`, and `sfdx-project.json`
+- **Module Target:** `scripts/devops/`, `.github/workflows/` (GitHub Actions), `config/devops/nexus-devops.json`, and `sfdx-project.json`
 - **Related ADR:** `docs/adr/0005-source-driven-packaging-strategy.md`
 
 ---
@@ -34,16 +34,23 @@ Nexus Core operates on a **Hybrid Packaging Model** that separates local develop
 
 ---
 
-## 2. CI/CD Quality Gates & Merge Request Validations
-Every pull request is automatically validated against three progressive gates:
-1. **Static Analysis & Schema Validation (`npm test`):**
-   - PMD Apex analysis enforcing `WITH USER_MODE` on all SOQL queries.
-   - ESLint and Prettier formatting checks.
-   - `scripts/devops/validate-clt-schemas.js`: Verifies Custom Lightning Types and HXL widget schemas.
-2. **Orphaned Metadata & Drift Scan:**
-   - `scripts/devops/audit-orphaned-metadata.sh`: Blocks unused VIPs, unreferenced widgets, or missing permissions.
-   - `scripts/devops/drift-detect.sh`: Nightly verification against base branch.
-3. **Automated Scratch Org Test Suite:**
-   - Spins up an ephemeral scratch org (`config/project-scratch-def-headless.json`).
-   - Deploys source, assigns Permission Set Groups (`PSG_Sales_Representative`), and seeds test data (`data/data-plan.json`).
-   - Executes Apex unit tests in-memory, requiring $\ge 85\%$ branch coverage.
+## 2. CI/CD Quality Gates & Pull Request Validations
+Every pull request is validated by `.github/workflows/ci.yml` against three progressive gates. All of them except the
+scratch org suite also run locally with `npm run verify`.
+
+1. **Static Analysis & Schema Validation** (job `Gate 1 - Static analysis & schemas`):
+   - `npm run format:check` / `npm run lint` / `npm run test:unit`: Prettier (Apex, LWC, JSON, YAML), ESLint (`@salesforce/eslint-config-lwc`) and LWC Jest.
+   - `npm run lint:apex`: Salesforce Code Analyzer (PMD Recommended + the Nexus ruleset `config/pmd/nexus-apex-rules.xml`), failing on High/Critical. Nexus rules enforce `WITH USER_MODE`, SOQL only in `*Selector` classes, no dynamic SOQL outside selectors, one-line triggers, and the invocable result envelope.
+   - `npm run test:pmd-rules`: regression fixtures (`config/pmd/fixtures/`) prove every Nexus rule still fires, without false positives.
+   - `npm run validate:clt`: Custom Lightning Type, HXL widget and MCP server definition contracts (schemas, `$ref`s, renderer and composition bindings).
+2. **Orphaned Metadata & Module Boundaries** (same job) and **Drift** (nightly):
+   - `npm run audit:metadata` (`scripts/devops/audit-orphaned-metadata.sh`): blocks Apex entry points / custom fields / custom permissions without permission set grants, and unreferenced tabs, LWCs, screen flows, Apex, widgets, Custom Lightning Types and VIPs.
+   - `npm run audit:deps` (`scripts/devops/generate-dependency-graph.js`): builds the module graph from source references and enforces downward-only layering, declared dependencies, and complete 2GP transitive dependency chains.
+   - `scripts/devops/drift-detect.sh` (`.github/workflows/nightly-drift.yml`): retrieves the active modules from a long-lived org and compares them semantically with `main`.
+3. **Automated Scratch Org Test Suite** (job `Gate 3 - Scratch org test suite`, ready PRs and manual runs):
+   - Provisions an ephemeral scratch org with `scripts/org-init/setup-scratch-headless.sh` (headless definition, Nebula Logger, deploy, PSG assignment, personas, `data/data-plan.json`).
+   - `scripts/devops/run-apex-tests.sh` runs every Nexus test class and requires $\ge 85\%$ coverage of Nexus classes.
+   - Deletes the scratch org.
+
+Active modules, the coverage threshold, external package symbols and the reasoned allowlist live in
+`config/devops/nexus-devops.json`. See `docs/devops/github-setup.md` for repository secrets and branch protection.

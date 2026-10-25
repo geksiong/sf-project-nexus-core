@@ -1,8 +1,19 @@
 /**
  * @description Selector for Nebula Logger log entries surfaced in the Admin Cockpit error feed.
  */
-public with sharing class LogEntriesSelector {
-    public static List<LogEntry__c> selectRecentByLevels(Set<String> loggingLevels, Integer maxRows) {
+public virtual with sharing class LogEntriesSelector {
+    @TestVisible
+    private static LogEntriesSelector instance;
+
+    /** @description Returns the selector; tests replace it with a Test.createStub() mock via `instance`. */
+    public static LogEntriesSelector newInstance() {
+        if (instance == null) {
+            instance = new LogEntriesSelector();
+        }
+        return instance;
+    }
+
+    public virtual List<LogEntry__c> selectRecentByLevels(Set<String> loggingLevels, Integer maxRows) {
         return [
             SELECT Id, Message__c, LoggingLevel__c, OriginLocation__c, Timestamp__c
             FROM LogEntry__c

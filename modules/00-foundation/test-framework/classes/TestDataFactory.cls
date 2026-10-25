@@ -71,7 +71,7 @@ public class TestDataFactory {
     }
 
     public static Id getFakeId(Schema.SObjectType sObjectType) {
-        String keyPrefix = sObjectType.getDescribe().getKeyPrefix();
+        String keyPrefix = sObjectType.getDescribe(SObjectDescribeOptions.DEFERRED).getKeyPrefix();
         String suffix = String.valueOf(counter++);
         return (Id) (keyPrefix + '0'.repeat(12 - suffix.length()) + suffix);
     }

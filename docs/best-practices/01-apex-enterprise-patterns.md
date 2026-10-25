@@ -29,8 +29,19 @@ Business logic is strictly decoupled across three explicit tiers:
 Selectors provide clean, reusable SOQL queries with user mode:
 
 ```apex
-public with sharing class OpportunitiesSelector {
-    public static List<Opportunity> selectByIdWithDetails(Set<Id> oppIds) {
+public virtual with sharing class OpportunitiesSelector {
+    @TestVisible
+    private static OpportunitiesSelector instance;
+
+    // Unit tests replace `instance` with a TestStub mock (see 04-testing-and-mocking.md)
+    public static OpportunitiesSelector newInstance() {
+        if (instance == null) {
+            instance = new OpportunitiesSelector();
+        }
+        return instance;
+    }
+
+    public virtual List<Opportunity> selectByIdWithDetails(Set<Id> oppIds) {
         if (oppIds == null || oppIds.isEmpty()) return new List<Opportunity>();
         return [
             SELECT Id, Name, AccountId, StageName, Amount, CloseDate, Discount_Percentage__c,
@@ -79,7 +90,7 @@ public with sharing class OpportunityService {
         if (closingOppIds.isEmpty()) return;
 
         Map<Id, Opportunity> detailedOpps = new Map<Id, Opportunity>(
-            OpportunitiesSelector.selectByIdWithDetails(closingOppIds)
+            OpportunitiesSelector.newInstance().selectByIdWithDetails(closingOppIds)
         );
 
         for (Opportunity opp : newOpps) {
@@ -111,7 +122,7 @@ public with sharing class CaseEscalationService {
     public static void escalateCases(Set<Id> caseIds, String escalationReason) {
         if (caseIds == null || caseIds.isEmpty()) return;
 
-        List<Case> casesToEscalate = CasesSelector.selectById(caseIds);
+        List<Case> casesToEscalate = CasesSelector.newInstance().selectById(caseIds);
         Group escalationQueue = [SELECT Id FROM Group WHERE Type = 'Queue' AND DeveloperName = 'Tier_2_Technical_Escalations' WITH USER_MODE LIMIT 1];
         CaseTeamRole smeRole = [SELECT Id FROM CaseTeamRole WHERE Name = 'Technical SME' WITH USER_MODE LIMIT 1];
         Id defaultSmeUserId = UserInfo.getUserId();
