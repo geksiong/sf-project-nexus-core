@@ -23,20 +23,22 @@ Selectors expose a `@TestVisible` static `instance` and a `newInstance()` factor
 directly. `TestStub` (`System.StubProvider`) returns canned responses and records calls:
 
 ```apex
-TestStub accounts = new TestStub()
-    .returns('selectByIdWithCreditStatus', new Map<Id, Account>{
-        accountId => new Account(Id = accountId, Credit_Hold__c = true)
-    });
-AccountsSelector.instance = (AccountsSelector) accounts.create(AccountsSelector.class);
+TestStub facts = new TestStub()
+    .returns('selectAccountIdsOnCreditHold', new Set<Id>{ accountId })
+    .returns('selectOpportunityIdsWithPrimaryContact', new Set<Id>());
+SalesEngineFactsSelector.instance = (SalesEngineFactsSelector) facts.create(SalesEngineFactsSelector.class);
 
 OpportunityService.validateStageProgression(newOpps, oldMap);
 
 Assert.isTrue(newOpps[0].getErrors()[0].getMessage().contains('Credit Hold'));
-Assert.areEqual(1, accounts.callCount('selectByIdWithCreditStatus'), 'one bulk query');
+Assert.areEqual(1, facts.callCount('selectAccountIdsOnCreditHold'), 'one bulk query');
 ```
 
 - `Test.createStub()` cannot mock inner classes; stub top-level selectors and services only.
 - Use `TestDataFactory.getFakeId(SObjectType)` for record Ids, and `old.clone(true)` to build `Trigger.oldMap` / `Trigger.new` pairs.
+- Rules that read a `*FactsSelector` also need one database test running as a user **without** the feature's
+  permission sets (see `OpportunityTriggerIntegrationTest.stageGatesApplyToUsersWithoutSalesPermissions`), proving
+  the rule holds for integration users, partners and agents.
 - Build parent relationships and child lists (e.g. `Manager.IsActive`, `OpportunityContactRoles`) with `JSON.deserialize` -
   see the helpers in `OpportunityServiceTest`.
 - Assert on `record.getErrors()` / `record.hasErrors()` instead of catching `DmlException`.

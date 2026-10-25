@@ -5,4 +5,7 @@ public with sharing class MixedSelector {
     public static List<Account> missingUserMode() {
         return [SELECT Id FROM Account LIMIT 10];
     }
+    public static List<Account> systemModeOutsideFacts() {
+        return [SELECT Id FROM Account WITH SYSTEM_MODE LIMIT 10];
+    }
 }

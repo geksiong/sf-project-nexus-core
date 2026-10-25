@@ -64,6 +64,37 @@ private class OpportunityTriggerIntegrationTest {
         Assert.isTrue(queriesUsed < 10, 'Trigger logic must be bulkified, used ' + queriesUsed + ' queries');
     }
 
+    /**
+     * @description Stage gates are business invariants: they must evaluate for any user who saves the
+     * record (integration users, partners, agents), not only for holders of the sales permission sets.
+     */
+    @IsTest
+    static void stageGatesApplyToUsersWithoutSalesPermissions() {
+        User outsider = TestDataFactory.createTestUser('Standard User', null);
+        System.runAs(new User(Id = UserInfo.getUserId())) {
+            insert outsider;
+        }
+        Account creditHold = TestDataFactory.createAccounts(1, false)[0];
+        creditHold.Credit_Hold__c = true;
+        insert creditHold;
+        Opportunity opp = TestDataFactory.createOpportunities(creditHold.Id, 1, false)[0];
+        opp.OwnerId = outsider.Id;
+        insert opp;
+
+        Database.SaveResult result;
+        System.runAs(outsider) {
+            result = Database.update(
+                new Opportunity(Id = opp.Id, StageName = OpportunityService.STAGE_CLOSED_WON),
+                false
+            );
+        }
+
+        Assert.isFalse(result.isSuccess(), 'Credit hold must block closing regardless of the user\'s field access');
+        String message = result.getErrors()[0].getMessage();
+        Assert.isTrue(message.contains('Credit Hold'), message);
+        Assert.isTrue(message.contains('Primary Contact Role'), message);
+    }
+
     @IsTest
     static void bypassSkipsAllOpportunityRules() {
         Account creditHold = TestDataFactory.createAccounts(1, false)[0];

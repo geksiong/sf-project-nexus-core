@@ -3,10 +3,10 @@
  * method name and records every call, so services can be tested without SOQL or DML.
  *
  * Usage:
- *   TestStub accounts = new TestStub().returns('selectByIdWithCreditStatus', accountMap);
- *   AccountsSelector.instance = (AccountsSelector) accounts.create(AccountsSelector.class);
+ *   TestStub facts = new TestStub().returns('selectAccountIdsOnCreditHold', new Set<Id>{ accountId });
+ *   SalesEngineFactsSelector.instance = (SalesEngineFactsSelector) facts.create(SalesEngineFactsSelector.class);
  *   ...
- *   Assert.areEqual(1, accounts.callCount('selectByIdWithCreditStatus'));
+ *   Assert.areEqual(1, facts.callCount('selectAccountIdsOnCreditHold'));
  */
 @IsTest
 public class TestStub implements System.StubProvider {

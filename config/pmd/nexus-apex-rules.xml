@@ -6,15 +6,46 @@
     <description>Nexus Core architecture guardrails (AGENTS.md section 2-3). Test classes are exempt.</description>
 
     <rule name="NexusSoqlMustUseUserMode" language="apex" class="net.sourceforge.pmd.lang.rule.xpath.XPathRule"
-          message="SOQL must enforce WITH USER_MODE (AGENTS.md 2.1)">
-        <description>Every static SOQL query in production Apex must include WITH USER_MODE.</description>
+          message="SOQL must enforce WITH USER_MODE; system-mode rule facts belong in a *FactsSelector (AGENTS.md 2.1)">
+        <description>Every static SOQL query in production Apex must include WITH USER_MODE, except in *FactsSelector classes.</description>
         <priority>1</priority>
         <properties>
             <property name="xpath">
                 <value><![CDATA[
 //SoqlExpression
     [not(matches(@Query, 'WITH\s+USER_MODE', 'i'))]
+    [not(ancestor::UserClass[ends-with(@SimpleName, 'FactsSelector')])]
     [not(ancestor::UserClass[ModifierNode/Annotation[lower-case(@Name) = 'istest']])]
+]]></value>
+            </property>
+        </properties>
+    </rule>
+
+    <rule name="NexusFactsSelectorMustUseSystemMode" language="apex" class="net.sourceforge.pmd.lang.rule.xpath.XPathRule"
+          message="*FactsSelector SOQL must use WITH SYSTEM_MODE: rule facts must not depend on the running user (AGENTS.md 2.1)">
+        <description>Facts selectors evaluate business invariants, so every query declares WITH SYSTEM_MODE explicitly.</description>
+        <priority>1</priority>
+        <properties>
+            <property name="xpath">
+                <value><![CDATA[
+//SoqlExpression
+    [not(matches(@Query, 'WITH\s+SYSTEM_MODE', 'i'))]
+    [ancestor::UserClass[ends-with(@SimpleName, 'FactsSelector')]]
+]]></value>
+            </property>
+        </properties>
+    </rule>
+
+    <rule name="NexusFactsSelectorWithoutSharing" language="apex" class="net.sourceforge.pmd.lang.rule.xpath.XPathRule"
+          message="*FactsSelector classes must be declared without sharing; WITH SYSTEM_MODE still applies the class sharing mode (AGENTS.md 2.1)">
+        <description>System-mode SOQL skips CRUD/FLS but inherits record sharing from the class, so facts selectors opt out of sharing explicitly.</description>
+        <priority>1</priority>
+        <properties>
+            <property name="xpath">
+                <value><![CDATA[
+//UserClass
+    [ends-with(@SimpleName, 'FactsSelector')]
+    [not(ModifierNode[@WithoutSharing = true()])]
 ]]></value>
             </property>
         </properties>
