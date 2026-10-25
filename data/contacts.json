@@ -1,0 +1,59 @@
+{
+  "records": [
+    {
+      "attributes": {
+        "type": "Contact",
+        "referenceId": "ConRef1"
+      },
+      "FirstName": "Maria",
+      "LastName": "Chen",
+      "Title": "VP Operations",
+      "Email": "maria.chen@acme.example.com",
+      "AccountId": "@AccRef1"
+    },
+    {
+      "attributes": {
+        "type": "Contact",
+        "referenceId": "ConRef2"
+      },
+      "FirstName": "David",
+      "LastName": "Okafor",
+      "Title": "Procurement Director",
+      "Email": "david.okafor@acme.example.com",
+      "AccountId": "@AccRef1"
+    },
+    {
+      "attributes": {
+        "type": "Contact",
+        "referenceId": "ConRef3"
+      },
+      "FirstName": "Priya",
+      "LastName": "Raman",
+      "Title": "Chief Information Officer",
+      "Email": "priya.raman@apexhealth.example.com",
+      "AccountId": "@AccRef2"
+    },
+    {
+      "attributes": {
+        "type": "Contact",
+        "referenceId": "ConRef4"
+      },
+      "FirstName": "Tom",
+      "LastName": "Alvarez",
+      "Title": "Partner Alliance Manager",
+      "Email": "tom.alvarez@nexuspartners.example.com",
+      "AccountId": "@AccRef3"
+    },
+    {
+      "attributes": {
+        "type": "Contact",
+        "referenceId": "ConRef5"
+      },
+      "FirstName": "Sarah",
+      "LastName": "Kim",
+      "Title": "Chief Financial Officer",
+      "Email": "sarah.kim@globex.example.com",
+      "AccountId": "@AccRef4"
+    }
+  ]
+}

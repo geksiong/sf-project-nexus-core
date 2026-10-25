@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Workflow xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fieldUpdates>
+        <fullName>Discount_Status_Pending</fullName>
+        <description>Discount Approval process: set status to Pending.</description>
+        <field>Discount_Approval_Status__c</field>
+        <literalValue>Pending</literalValue>
+        <name>Discount Status: Pending</name>
+        <notifyAssignee>false</notifyAssignee>
+        <operation>Literal</operation>
+        <protected>false</protected>
+        <reevaluateOnChange>false</reevaluateOnChange>
+    </fieldUpdates>
+    <fieldUpdates>
+        <fullName>Discount_Status_Approved</fullName>
+        <description>Discount Approval process: set status to Approved.</description>
+        <field>Discount_Approval_Status__c</field>
+        <literalValue>Approved</literalValue>
+        <name>Discount Status: Approved</name>
+        <notifyAssignee>false</notifyAssignee>
+        <operation>Literal</operation>
+        <protected>false</protected>
+        <reevaluateOnChange>false</reevaluateOnChange>
+    </fieldUpdates>
+    <fieldUpdates>
+        <fullName>Discount_Status_Rejected</fullName>
+        <description>Discount Approval process: set status to Rejected.</description>
+        <field>Discount_Approval_Status__c</field>
+        <literalValue>Rejected</literalValue>
+        <name>Discount Status: Rejected</name>
+        <notifyAssignee>false</notifyAssignee>
+        <operation>Literal</operation>
+        <protected>false</protected>
+        <reevaluateOnChange>false</reevaluateOnChange>
+    </fieldUpdates>
+    <fieldUpdates>
+        <fullName>Discount_Status_Not_Submitted</fullName>
+        <description>Discount Approval process: set status to Not Submitted.</description>
+        <field>Discount_Approval_Status__c</field>
+        <literalValue>Not Submitted</literalValue>
+        <name>Discount Status: Not Submitted</name>
+        <notifyAssignee>false</notifyAssignee>
+        <operation>Literal</operation>
+        <protected>false</protected>
+        <reevaluateOnChange>false</reevaluateOnChange>
+    </fieldUpdates>
+</Workflow>

@@ -32,3 +32,39 @@ Nexus Core is a modular, enterprise-grade Salesforce reference architecture demo
 - **Phase 6 (Weeks 12–13):** Dual Experience Cloud Runtimes: LWR & Aura Partner Central (Demo Apps 5 & 6).
 - **Phase 7 (Weeks 14–15):** CRM Analytics & Multi-Framework React Explorer (Demo Apps 7 & 8).
 - **Phase 8 (Weeks 16–17):** Autonomous Agentforce, MCP & HXL UI Stack (Demo App 9).
+## Getting Started (Phase 1)
+
+Prerequisites: Salesforce CLI (`sf`), `jq`, Node 18+, and an authorized Dev Hub.
+
+```bash
+npm install                                    # LWC Jest tooling
+scripts/org-init/setup-scratch-headless.sh --dev-hub DevHubGS
+npm test                                       # LWC Jest tests
+```
+
+The setup script creates the scratch org, installs Nebula Logger, deploys `00-foundation` + `10-core-domain`,
+assigns permissions, creates the Sales Manager persona, seeds `data/`, and runs all Apex tests.
+
+### What Phase 1 delivers
+| Module | Component | Purpose |
+| --- | --- | --- |
+| `00-foundation/trigger-framework` | `TriggerHandler` | Context routing, recursion guard (`setMaxLoopCount`), handler bypass |
+| `00-foundation/bypass-framework` | `BypassService`, `Trigger_Setting__mdt`, `Bypass_Triggers` custom permission | Transactional, org-wide (per object) and per-user trigger bypass |
+| `00-foundation/admin-cockpit` | `OrgLimitsService`, `LogEntriesSelector`, `adminLimitsCockpit` LWC, **Admin Cockpit** tab | Live `System.OrgLimits` telemetry (OK < 70% ≤ WARNING ≤ 85% < CRITICAL) and Nebula Logger ERROR/WARN feed |
+| `00-foundation/test-framework` | `TestDataFactory` | Standard-object test builders |
+| `10-core-domain/sales-engine` | `OpportunityTrigger` → `OpportunityTriggerHandler` → `OpportunityService` | Discount approval policy and stage gates |
+| | `OpportunitiesSelector`, `AccountsSelector`, `UsersSelector` | All SOQL, `WITH USER_MODE` |
+| | `CloseOpportunityAction` + **Opportunity Deal Closer** screen flow | Guided close Won/Lost via the uniform invocable result envelope |
+| | **Opportunity Discount Approval** process + `Discount_Approval_Tier__mdt` | Tier 1 (> 10%) → owner's manager; Tier 2 (> 25%) → also executive approver |
+| | `PSG_Sales_Representative` (`PS_Sales_Rep`), `PS_Sales_Admin`, **Nexus Sales** app | Access model |
+| `10-core-domain/reports`, `dashboards` | **Pipeline vs Won Revenue** (joined), **Open Pipeline by Stage**, **Sales Performance Console** | Sales performance reporting |
+| `10-core-domain/org-model` | Role hierarchy | Executive VP → Sales Manager → Sales Representative; Service Agent |
+
+### Sales engine rules (`OpportunityService`)
+- **Discount policy:** `Discount_Percentage__c` maps to `Approval_Tier__c` using `Discount_Approval_Tier__mdt` thresholds (strictly greater than). Lowering an approved discount keeps the approval; raising it resets status to *Not Submitted*. The discount is locked while approval is *Pending*.
+- **Executive approver:** owner's manager's manager, falling back to the owner's manager.
+- **Closed Won gate:** no account credit hold, discount approval satisfied, and a primary contact role (on update).
+- **Closed Lost gate:** `Loss_Reason__c` required.
+
+> Scratch Developer Edition orgs include only 2 Salesforce licenses: the admin user doubles as the Sales Rep persona
+> and reports to the generated *Sam Manager* user, who approves Tier 1 (and, as fallback, Tier 2) discounts.
