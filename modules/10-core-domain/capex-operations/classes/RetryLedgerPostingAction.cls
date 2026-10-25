@@ -1,5 +1,6 @@
 /**
- * @description Headless action that re-queues a failed ERP ledger posting. Reusable by Flow, Agentforce
+ * @description Headless action that re-queues a failed ERP ledger posting, or recovers an approval stuck
+ * as Pending with no ledger entry. Reusable by Flow, Agentforce
  * and MCP via the uniform result envelope.
  */
 public with sharing class RetryLedgerPostingAction {
@@ -25,10 +26,10 @@ public with sharing class RetryLedgerPostingAction {
     }
     @InvocableMethod(
         label='Retry Ledger Posting'
-        description='Re-queues the failed ERP ledger posting of an approved CapEx request.'
+        description='Re-queues a failed ERP ledger posting, or recovers an approved CapEx request stuck as Pending.'
         category='Operations'
     )
     public static List<Result> execute(List<Request> requests) {
-        return LedgerPostingService.retryFailedPostings(requests);
+        return LedgerPostingService.retryPostings(requests);
     }
 }

@@ -7,6 +7,7 @@ private class CapExSelectorsTest {
         Assert.isTrue(facts.selectLedgerEntryIdsByKey(new Set<String>()).isEmpty());
         Assert.isTrue(facts.selectPendingEntries(null).isEmpty());
         Assert.isTrue(facts.selectFailedEntryIds(new Set<Id>()).isEmpty());
+        Assert.isTrue(facts.selectApprovedRequests(null).isEmpty());
         Assert.areEqual(0, Limits.getQueries(), 'Empty inputs must not consume SOQL queries');
     }
 

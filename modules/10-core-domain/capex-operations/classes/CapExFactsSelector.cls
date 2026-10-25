@@ -46,6 +46,19 @@ public virtual without sharing class CapExFactsSelector {
         ];
     }
 
+    /** @description Approval facts (amount, department, time) of approved requests, to recover a lost event. */
+    public virtual List<CapEx_Request__c> selectApprovedRequests(Set<Id> requestIds) {
+        if (requestIds == null || requestIds.isEmpty()) {
+            return new List<CapEx_Request__c>();
+        }
+        return [
+            SELECT Id, Total_Amount__c, Department__c, Approved_On__c
+            FROM CapEx_Request__c
+            WHERE Id IN :requestIds AND Status__c = :CapExService.STATUS_APPROVED
+            WITH SYSTEM_MODE
+        ];
+    }
+
     /** @description Failed ledger entries of the given CapEx requests. */
     public virtual Set<Id> selectFailedEntryIds(Set<Id> requestIds) {
         if (requestIds == null || requestIds.isEmpty()) {

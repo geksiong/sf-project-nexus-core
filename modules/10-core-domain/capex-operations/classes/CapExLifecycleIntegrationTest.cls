@@ -161,6 +161,34 @@ private class CapExLifecycleIntegrationTest {
         Assert.isTrue(queriesUsed < 10, 'Producer must be bulkified, used ' + queriesUsed + ' queries');
     }
 
+    /** @description A running job may queue only one child: remainder and retries travel together. */
+    @IsTest
+    static void oversizedBatchWithFailuresQueuesExactlyOneChildJob() {
+        ErpLedgerMock mock = ErpLedgerMock.install();
+        LedgerPostingService.postBatchSize = 2;
+        Id repId = CapExTestFixtures.getUser(CapExTestFixtures.REP).Id;
+        List<CapEx_Request__c> requests = new List<CapEx_Request__c>();
+        for (Integer i = 0; i < 3; i++) {
+            requests.add(CapExTestFixtures.newRequest(repId, 100 + i));
+        }
+        insert requests;
+        List<Ledger_Entry__c> entries = new List<Ledger_Entry__c>();
+        for (CapEx_Request__c request : requests) {
+            entries.add(new Ledger_Entry__c(CapEx_Request__c = request.Id, Idempotency_Key__c = request.Id));
+            mock.rejectedKeys.add(request.Id);
+        }
+        insert entries;
+        Set<Id> entryIds = new Map<Id, Ledger_Entry__c>(entries).keySet();
+
+        Test.startTest();
+        System.enqueueJob(new LedgerPostingJob(entryIds));
+        Test.stopTest();
+
+        Assert.areEqual(1, mock.calls, 'One ERP request of postBatchSize entries');
+        Assert.areEqual(1, LedgerPostingJob.deferredInTests.size(), 'At most one child job per running job');
+        Assert.areEqual(entryIds, LedgerPostingJob.deferredInTests[0].entryIds, 'Remainder plus retries');
+    }
+
     @IsTest
     static void bypassPublishesNothing() {
         CapEx_Request__c request = insertDraft(300);
