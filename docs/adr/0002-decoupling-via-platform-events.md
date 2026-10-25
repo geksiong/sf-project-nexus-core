@@ -37,6 +37,9 @@ Rules that make it safe:
   ERP failures retry in new jobs with growing delays (1, 5, 15, 30 min) up to
   `ERP_Ledger_Setting__mdt.Max_Attempts__c`, then the entry is `Failed`, the request's `Ledger_Status__c` is
   `Failed` and an ERROR is logged to the Admin Cockpit feed. `RetryLedgerPostingAction` re-queues it.
+* **Recovery of lost events:** an approval whose event was never published or consumed stays `Pending` with no
+  ledger entry. After 10 minutes `RetryLedgerPostingAction` rebuilds the entry from the approved request through
+  the same idempotent path as the consumer.
 
 ## Consequences
 * **Positive:** approvals never wait on, or fail because of, the ERP; the ledger is exactly-once per request;

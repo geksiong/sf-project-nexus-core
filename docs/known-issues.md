@@ -216,6 +216,9 @@ _Constraint_ = platform limitation with a workaround in place; _Verify_ = suspec
 
 - **What happens:** `PS_CapEx_Admin` can edit `Status__c`, so an admin can set _Approved_ without the approval
   process, which also publishes `CapEx_Approved__e` (the bulk test relies on this). Same class of issue as KI-004.
+  It can also desynchronise the ledger: setting an approved request back to Draft, changing the amount and
+  re-approving publishes a second event, which the idempotent consumer correctly skips, so the ledger keeps the
+  original amount without any warning.
 - **Resolution:** a validation rule allowing status changes only from the approval process (or a bypass custom
   permission for data migration).
 

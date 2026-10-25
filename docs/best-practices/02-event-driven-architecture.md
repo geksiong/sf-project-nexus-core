@@ -39,12 +39,18 @@ know about. Keep same-transaction rules (validation, derived fields) in the trig
 ## 4. Async integration jobs
 
 - One job posts one batch (≤ 200 records, one callout); remainders go to a new job.
+- **A running queueable may enqueue only one child job.** Carry everything the next step needs (remainder and
+  retries) in a single job; a second `System.enqueueJob` throws a `LimitException` after the callout, rolling
+  back the job's DML. In tests chained jobs are captured (`LedgerPostingJob.deferredInTests`), so assert there
+  is at most one.
 - Callouts happen **before** any DML in the job's transaction.
 - Retry by enqueueing a new job with a delay (`System.enqueueJob(job, minutes)`), growing per attempt, up to a
   configured maximum (`ERP_Ledger_Setting__mdt.Max_Attempts__c`). After the last attempt mark the record `Failed`,
   surface it on the parent (`Ledger_Status__c`) and log an ERROR (Admin Cockpit feed).
 - Offer a recovery action with the result envelope (`RetryLedgerPostingAction`) that authorises in user mode
-  before re-queueing in system mode.
+  before re-queueing in system mode. It must also recover work whose event never arrived (publish failure,
+  exhausted consumer retries, a bypassed producer): find it by state (`Ledger_Status__c = Pending` with no entry,
+  older than a grace period) and rebuild it through the consumer's idempotent path.
 - Callouts go through a named credential (`callout:Mock_ERP_Ledger/...`), never a hard-coded URL.
 
 ## 5. Testing

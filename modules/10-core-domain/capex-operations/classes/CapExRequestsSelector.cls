@@ -19,7 +19,7 @@ public virtual with sharing class CapExRequestsSelector {
             return new List<CapEx_Request__c>();
         }
         return [
-            SELECT Id, Name, Ledger_Status__c
+            SELECT Id, Name, Status__c, Ledger_Status__c, Approved_On__c, LastModifiedDate
             FROM CapEx_Request__c
             WHERE Id IN :requestIds
             WITH USER_MODE

@@ -120,16 +120,16 @@ and submits it; their manager approves; approval publishes `CapEx_Approved__e`, 
 asynchronously ([ADR 0002](docs/adr/0002-decoupling-via-platform-events.md),
 [BP-EDA-002](docs/best-practices/02-event-driven-architecture.md)).
 
-| Component (`10-core-domain/capex-operations`, `base-schema`, `event-bus`)                     | Purpose                                                                                               |
-| --------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
-| `CapEx_Request__c` (Private OWD) + **CapEx Approval** process                                 | Draft → Submitted → Approved / Rejected; the submitter's manager approves (role hierarchy access)     |
-| `CapExRequestTrigger` → `CapExService`                                                        | Draft-only creation, amount/department/title frozen once submitted, publishes `CapEx_Approved__e`     |
-| `CapEx_Approved__e` (PublishAfterCommit) → `CapExApprovedTrigger` → `LedgerPostingService`    | Idempotent `Ledger_Entry__c` per request (`Idempotency_Key__c`), row-lock retries via the event bus   |
-| `LedgerPostingJob` → `ErpLedgerClient` → `Mock_ERP_Ledger` named credential                   | ERP posting with 1/5/15/30-minute retries up to `ERP_Ledger_Setting__mdt.Max_Attempts__c`, then ERROR |
-| `RetryLedgerPostingAction`                                                                    | Re-queue a failed posting (result envelope; Flow / Agentforce / MCP)                                  |
-| **Approved CapEx to Finance** criteria-based sharing rule, **Finance Controller** role        | Finance reads requests only once approved                                                             |
-| `PS_CapEx_Submitter`, `PS_CapEx_Reviewer`, `PS_CapEx_Admin`, **Nexus Operations** app         | Access model                                                                                          |
-| **Departmental CapEx Pipeline**, **CapEx Ledger Posting Status**, **CapEx Executive Console** | Reporting                                                                                             |
+| Component (`10-core-domain/capex-operations`, `base-schema`, `event-bus`)                     | Purpose                                                                                                                        |
+| --------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| `CapEx_Request__c` (Private OWD) + **CapEx Approval** process                                 | Draft → Submitted → Approved / Rejected; the submitter's manager approves (role hierarchy access)                              |
+| `CapExRequestTrigger` → `CapExService`                                                        | Draft-only creation, amount/department/title frozen once submitted, publishes `CapEx_Approved__e`                              |
+| `CapEx_Approved__e` (PublishAfterCommit) → `CapExApprovedTrigger` → `LedgerPostingService`    | Idempotent `Ledger_Entry__c` per request (`Idempotency_Key__c`), row-lock retries via the event bus                            |
+| `LedgerPostingJob` → `ErpLedgerClient` → `Mock_ERP_Ledger` named credential                   | ERP posting with 1/5/15/30-minute retries up to `ERP_Ledger_Setting__mdt.Max_Attempts__c`, then ERROR                          |
+| `RetryLedgerPostingAction`                                                                    | Re-queue a failed posting, or recover an approval stuck as Pending with no ledger entry (list view **Pending Ledger Posting**) |
+| **Approved CapEx to Finance** criteria-based sharing rule, **Finance Controller** role        | Finance reads requests only once approved                                                                                      |
+| `PS_CapEx_Submitter`, `PS_CapEx_Reviewer`, `PS_CapEx_Admin`, **Nexus Operations** app         | Access model                                                                                                                   |
+| **Departmental CapEx Pipeline**, **CapEx Ledger Posting Status**, **CapEx Executive Console** | Reporting                                                                                                                      |
 
 > The mock ERP endpoint does not exist, so `ERP_Ledger_Setting.Default.Simulate__c` (on) returns synthetic `SIM-`
 > references. The admin raises requests and the generated Sales Manager approves them; the setup script seeds five
