@@ -1,0 +1,12 @@
+{
+    "trailingComma": "none",
+    "singleQuote": true,
+    "printWidth": 120,
+    "tabWidth": 4,
+    "plugins": ["prettier-plugin-apex"],
+    "overrides": [
+        { "files": "**/lwc/**/*.html", "options": { "parser": "lwc" } },
+        { "files": ["*.json", "*.yml", "*.yaml", "*.md"], "options": { "tabWidth": 2 } },
+        { "files": ["*.cls", "*.trigger"], "options": { "apexInsertFinalNewline": true } }
+    ]
+}

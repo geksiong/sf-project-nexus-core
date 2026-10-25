@@ -16,9 +16,15 @@
       "path": "modules/10-core-domain",
       "default": false,
       "package": "NexusCore-CoreDomain",
+      "versionName": "ver 1.0",
+      "versionNumber": "1.0.0.NEXT",
       "dependencies": [
         {
-          "package": "NexusCore-Foundation"
+          "package": "Nebula Logger - Core@4.19.5"
+        },
+        {
+          "package": "NexusCore-Foundation",
+          "versionNumber": "1.0.0.LATEST"
         }
       ]
     },
@@ -26,9 +32,19 @@
       "path": "modules/20-omnistudio",
       "default": false,
       "package": "NexusCore-OmniStudio",
+      "versionName": "ver 1.0",
+      "versionNumber": "1.0.0.NEXT",
       "dependencies": [
         {
-          "package": "NexusCore-CoreDomain"
+          "package": "Nebula Logger - Core@4.19.5"
+        },
+        {
+          "package": "NexusCore-Foundation",
+          "versionNumber": "1.0.0.LATEST"
+        },
+        {
+          "package": "NexusCore-CoreDomain",
+          "versionNumber": "1.0.0.LATEST"
         }
       ]
     },
@@ -36,9 +52,19 @@
       "path": "modules/30-experience-cloud",
       "default": false,
       "package": "NexusCore-ExperienceCloud",
+      "versionName": "ver 1.0",
+      "versionNumber": "1.0.0.NEXT",
       "dependencies": [
         {
-          "package": "NexusCore-CoreDomain"
+          "package": "Nebula Logger - Core@4.19.5"
+        },
+        {
+          "package": "NexusCore-Foundation",
+          "versionNumber": "1.0.0.LATEST"
+        },
+        {
+          "package": "NexusCore-CoreDomain",
+          "versionNumber": "1.0.0.LATEST"
         }
       ]
     },
@@ -46,9 +72,19 @@
       "path": "modules/40-crm-analytics",
       "default": false,
       "package": "NexusCore-CRMAnalytics",
+      "versionName": "ver 1.0",
+      "versionNumber": "1.0.0.NEXT",
       "dependencies": [
         {
-          "package": "NexusCore-CoreDomain"
+          "package": "Nebula Logger - Core@4.19.5"
+        },
+        {
+          "package": "NexusCore-Foundation",
+          "versionNumber": "1.0.0.LATEST"
+        },
+        {
+          "package": "NexusCore-CoreDomain",
+          "versionNumber": "1.0.0.LATEST"
         }
       ]
     },
@@ -56,9 +92,19 @@
       "path": "modules/50-multi-framework",
       "default": false,
       "package": "NexusCore-MultiFramework",
+      "versionName": "ver 1.0",
+      "versionNumber": "1.0.0.NEXT",
       "dependencies": [
         {
-          "package": "NexusCore-CoreDomain"
+          "package": "Nebula Logger - Core@4.19.5"
+        },
+        {
+          "package": "NexusCore-Foundation",
+          "versionNumber": "1.0.0.LATEST"
+        },
+        {
+          "package": "NexusCore-CoreDomain",
+          "versionNumber": "1.0.0.LATEST"
         }
       ]
     },
@@ -66,9 +112,19 @@
       "path": "modules/60-hxl-widgets",
       "default": false,
       "package": "NexusCore-HXLWidgets",
+      "versionName": "ver 1.0",
+      "versionNumber": "1.0.0.NEXT",
       "dependencies": [
         {
-          "package": "NexusCore-CoreDomain"
+          "package": "Nebula Logger - Core@4.19.5"
+        },
+        {
+          "package": "NexusCore-Foundation",
+          "versionNumber": "1.0.0.LATEST"
+        },
+        {
+          "package": "NexusCore-CoreDomain",
+          "versionNumber": "1.0.0.LATEST"
         }
       ]
     },
@@ -76,12 +132,23 @@
       "path": "modules/70-agentforce-mcp",
       "default": false,
       "package": "NexusCore-AgentforceMCP",
+      "versionName": "ver 1.0",
+      "versionNumber": "1.0.0.NEXT",
       "dependencies": [
         {
-          "package": "NexusCore-CoreDomain"
+          "package": "Nebula Logger - Core@4.19.5"
         },
         {
-          "package": "NexusCore-HXLWidgets"
+          "package": "NexusCore-Foundation",
+          "versionNumber": "1.0.0.LATEST"
+        },
+        {
+          "package": "NexusCore-CoreDomain",
+          "versionNumber": "1.0.0.LATEST"
+        },
+        {
+          "package": "NexusCore-HXLWidgets",
+          "versionNumber": "1.0.0.LATEST"
         }
       ]
     }

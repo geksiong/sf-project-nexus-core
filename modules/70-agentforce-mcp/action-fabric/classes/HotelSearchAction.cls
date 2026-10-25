@@ -12,10 +12,14 @@ public with sharing class HotelSearchAction {
         public HotelDetailsPayload hotelDetails;
     }
     public class HotelDetailsPayload {
-        @InvocableVariable public String hotelName;
-        @InvocableVariable public Decimal nightlyRate;
-        @InvocableVariable public String roomTier;
-        @InvocableVariable public String confirmationId;
+        @InvocableVariable
+        public String hotelName;
+        @InvocableVariable
+        public Decimal nightlyRate;
+        @InvocableVariable
+        public String roomTier;
+        @InvocableVariable
+        public String confirmationId;
     }
     @InvocableMethod(label='Search Available Hotels' category='Hospitality')
     public static List<Response> searchHotels(List<Request> requests) {

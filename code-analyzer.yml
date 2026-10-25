@@ -1,0 +1,10 @@
+# Salesforce Code Analyzer configuration. Run with: npm run lint:apex
+engines:
+  pmd:
+    custom_rulesets:
+      - config/pmd/nexus-apex-rules.xml
+  # The rule regression fixtures intentionally violate the rules; scan modules/ only (npm run lint:apex)
+  eslint:
+    disable_engine: true # LWC is linted by the project ESLint config (npm run lint)
+  retire-js:
+    disable_engine: true

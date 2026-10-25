@@ -17,3 +17,6 @@ jsconfig.json
 .DS_Store
 .vscode/
 .idea/
+
+# Apex test run output
+test-results/

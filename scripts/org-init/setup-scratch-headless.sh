@@ -66,8 +66,12 @@ else
         --wait 20 --no-prompt >/dev/null
 fi
 
-step "Deploying 00-foundation and 10-core-domain"
-sf_json project deploy start -o "$ALIAS" -d modules/00-foundation -d modules/10-core-domain --wait 30 \
+# Active modules come from config/devops/nexus-devops.json (shared with CI and the audit gates).
+mapfile -t MODULES < <(jq -r '.activeModules[]' config/devops/nexus-devops.json)
+DEPLOY_ARGS=()
+for module in "${MODULES[@]}"; do DEPLOY_ARGS+=(-d "$module"); done
+step "Deploying ${MODULES[*]}"
+sf_json project deploy start -o "$ALIAS" "${DEPLOY_ARGS[@]}" --wait 30 \
     | jq -r '"    \(.result.numberComponentsDeployed) components deployed"'
 
 step "Assigning admin permission sets"
@@ -110,13 +114,8 @@ else
 fi
 
 if [[ "$SKIP_TESTS" == false ]]; then
-    # Nexus test classes only: RunLocalTests would also run ~1,300 tests from the unlocked Nebula Logger package.
-    step "Running Nexus Core Apex tests"
-    TEST_ARGS=()
-    for test_class in $(find modules -name '*Test.cls' -exec basename {} .cls \; | sort); do
-        TEST_ARGS+=(-n "$test_class")
-    done
-    sf apex run test -o "$ALIAS" "${TEST_ARGS[@]}" -c -r human -w 20
+    step "Running Nexus Core Apex tests (coverage gate)"
+    scripts/devops/run-apex-tests.sh --target-org "$ALIAS" --output-dir "test-results/$ALIAS"
 fi
 
 step "Done in $(( $(date +%s) - START ))s"

@@ -1,0 +1,31 @@
+{
+  "$comment": "Single source of truth for Nexus Core DevOps gates (scripts/devops, scripts/org-init, CI).",
+  "activeModules": ["modules/00-foundation", "modules/10-core-domain"],
+  "minApexCoverage": 85,
+  "externalPackages": {
+    "Nebula Logger - Core@4.19.5": {
+      "apexClasses": [
+        "Logger",
+        "LogMessage",
+        "LogEntryEventBuilder",
+        "LoggerParameter",
+        "ComponentLogger",
+        "FlowLogger"
+      ],
+      "objects": ["Log__c", "LogEntry__c", "LogEntryEvent__e", "LoggerSettings__c", "LoggerTag__c", "LogEntryTag__c"],
+      "permissionSets": ["LoggerAdmin", "LoggerLogViewer", "LoggerEndUser", "LoggerLogCreator"]
+    }
+  },
+  "allowlist": [
+    {
+      "check": "missing-field-permission",
+      "item": "CapEx_Request__c.Department__c",
+      "reason": "Phase 4 (CapEx) scaffolding: PS_CapEx_* permission sets arrive with Demo App 3."
+    },
+    {
+      "check": "clt-renderer-binding",
+      "item": "modules/70-agentforce-mcp/custom-lightning-types/hotelInfoResult/renderer.json",
+      "reason": "Phase 8 scaffolding: renderer binds $payload.hotelDetails but the result schema exposes outputValues. Resolve when the Agentforce contract is implemented."
+    }
+  ]
+}

@@ -3,13 +3,43 @@
   "private": true,
   "version": "1.0.0",
   "description": "Nexus Core: Salesforce Modular Enterprise Reference Platform",
+  "engines": {
+    "node": ">=22.5"
+  },
   "scripts": {
     "test": "npm run test:unit",
     "test:unit": "sfdx-lwc-jest",
     "test:unit:coverage": "sfdx-lwc-jest --coverage",
-    "setup:scratch": "scripts/org-init/setup-scratch-headless.sh"
+    "lint": "eslint .",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "lint:apex": "scripts/devops/lint-apex.sh",
+    "test:pmd-rules": "node scripts/devops/test-pmd-rules.js",
+    "validate:clt": "node scripts/devops/validate-clt-schemas.js",
+    "audit:metadata": "node scripts/devops/audit-orphaned-metadata.js",
+    "audit:deps": "node scripts/devops/generate-dependency-graph.js",
+    "verify": "npm run format:check && npm run lint && npm run test:unit && npm run validate:clt && npm run audit:metadata && npm run audit:deps && npm run lint:apex && npm run test:pmd-rules",
+    "test:apex": "scripts/devops/run-apex-tests.sh --target-org",
+    "drift": "scripts/devops/drift-detect.sh --target-org",
+    "setup:scratch": "scripts/org-init/setup-scratch-headless.sh",
+    "prepare": "husky"
+  },
+  "lint-staged": {
+    "*.{cls,trigger,js,html,json,md,yml,yaml}": "prettier --write",
+    "modules/**/lwc/**/*.js": "eslint"
   },
   "devDependencies": {
-    "@salesforce/sfdx-lwc-jest": "^7.0.1"
+    "@lwc/eslint-plugin-lwc": "^3.5.0",
+    "@salesforce/eslint-config-lwc": "^4.1.2",
+    "@salesforce/eslint-plugin-lightning": "^2.0.0",
+    "@salesforce/sfdx-lwc-jest": "^7.0.1",
+    "eslint": "^9.39.5",
+    "eslint-plugin-import": "^2.32.0",
+    "eslint-plugin-jest": "^29.17.0",
+    "globals": "^17.13.0",
+    "husky": "^9.1.7",
+    "lint-staged": "^17.6.0",
+    "prettier": "^3.9.10",
+    "prettier-plugin-apex": "^2.3.0"
   }
 }

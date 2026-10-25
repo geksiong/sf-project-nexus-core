@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ruleset name="Nexus"
+         xmlns="http://pmd.sourceforge.net/ruleset/2.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://pmd.sourceforge.net/ruleset/2.0.0 https://pmd.sourceforge.io/ruleset_2_0_0.xsd">
+    <description>Nexus Core architecture guardrails (AGENTS.md section 2-3). Test classes are exempt.</description>
+
+    <rule name="NexusSoqlMustUseUserMode" language="apex" class="net.sourceforge.pmd.lang.rule.xpath.XPathRule"
+          message="SOQL must enforce WITH USER_MODE (AGENTS.md 2.1)">
+        <description>Every static SOQL query in production Apex must include WITH USER_MODE.</description>
+        <priority>1</priority>
+        <properties>
+            <property name="xpath">
+                <value><![CDATA[
+//SoqlExpression
+    [not(matches(@Query, 'WITH\s+USER_MODE', 'i'))]
+    [not(ancestor::UserClass[ModifierNode/Annotation[lower-case(@Name) = 'istest']])]
+]]></value>
+            </property>
+        </properties>
+    </rule>
+
+    <rule name="NexusSoqlOnlyInSelectors" language="apex" class="net.sourceforge.pmd.lang.rule.xpath.XPathRule"
+          message="SOQL belongs in a *Selector class, not in services, controllers, invocables or triggers (AGENTS.md 2.1)">
+        <description>Static SOQL may only appear inside classes whose name ends with Selector.</description>
+        <priority>1</priority>
+        <properties>
+            <property name="xpath">
+                <value><![CDATA[
+//SoqlExpression
+    [not(ancestor::UserClass[ends-with(@SimpleName, 'Selector')])]
+    [not(ancestor::UserClass[ModifierNode/Annotation[lower-case(@Name) = 'istest']])]
+]]></value>
+            </property>
+        </properties>
+    </rule>
+
+    <rule name="NexusNoDynamicSoqlOutsideSelectors" language="apex" class="net.sourceforge.pmd.lang.rule.xpath.XPathRule"
+          message="Dynamic SOQL (Database.query*) belongs in a *Selector class (AGENTS.md 2.1)">
+        <description>Database.query, Database.queryWithBinds and Database.getQueryLocator may only be called from Selector classes.</description>
+        <priority>1</priority>
+        <properties>
+            <property name="xpath">
+                <value><![CDATA[
+//MethodCallExpression
+    [lower-case(@FullMethodName) = ('database.query', 'database.querywithbinds', 'database.getquerylocator', 'database.getquerylocatorwithbinds')]
+    [not(ancestor::UserClass[ends-with(@SimpleName, 'Selector')])]
+    [not(ancestor::UserClass[ModifierNode/Annotation[lower-case(@Name) = 'istest']])]
+]]></value>
+            </property>
+        </properties>
+    </rule>
+
+    <rule name="NexusTriggerMustDelegateToHandler" language="apex" class="net.sourceforge.pmd.lang.rule.xpath.XPathRule"
+          message="Triggers must be one line: new SObjectTriggerHandler().run(); (AGENTS.md 2.1)">
+        <description>A trigger body may contain only a single call to run() on a newly constructed handler.</description>
+        <priority>1</priority>
+        <properties>
+            <property name="xpath">
+                <value><![CDATA[
+//UserTrigger
+    [count(.//ExpressionStatement) != 1
+     or .//*[ends-with(name(), 'Statement') and name() != 'ExpressionStatement']
+     or not(.//ExpressionStatement/MethodCallExpression[lower-case(@MethodName) = 'run'][.//NewObjectExpression])]
+]]></value>
+            </property>
+        </properties>
+    </rule>
+
+    <rule name="NexusInvocableResultEnvelope" language="apex" class="net.sourceforge.pmd.lang.rule.xpath.XPathRule"
+          message="@InvocableMethod classes must define a Result class with isSuccess, errorCode, errorMessage and payload (AGENTS.md 3)">
+        <description>Invocable actions exposed to Flow, Agentforce or MCP return the uniform typed result envelope.</description>
+        <priority>1</priority>
+        <properties>
+            <property name="xpath">
+                <value><![CDATA[
+//UserClass
+    [Method/ModifierNode/Annotation[lower-case(@Name) = 'invocablemethod']]
+    [not(UserClass[lower-case(@SimpleName) = 'result']
+        [.//Field[lower-case(@Name) = 'issuccess']]
+        [.//Field[lower-case(@Name) = 'errorcode']]
+        [.//Field[lower-case(@Name) = 'errormessage']]
+        [.//Field[lower-case(@Name) = 'payload']])]
+]]></value>
+            </property>
+        </properties>
+    </rule>
+</ruleset>

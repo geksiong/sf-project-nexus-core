@@ -1,0 +1,11 @@
+{
+  "$comment": "Exact set of Nexus rule violations the fixtures must produce (file:line -> rule). Files not listed must be clean.",
+  "violations": [
+    { "file": "BadService.cls", "line": 3, "rule": "NexusSoqlMustUseUserMode" },
+    { "file": "BadService.cls", "line": 3, "rule": "NexusSoqlOnlyInSelectors" },
+    { "file": "BadService.cls", "line": 4, "rule": "NexusNoDynamicSoqlOutsideSelectors" },
+    { "file": "BadTrigger.trigger", "line": 1, "rule": "NexusTriggerMustDelegateToHandler" },
+    { "file": "BadAction.cls", "line": 1, "rule": "NexusInvocableResultEnvelope" },
+    { "file": "MixedSelector.cls", "line": 6, "rule": "NexusSoqlMustUseUserMode" }
+  ]
+}

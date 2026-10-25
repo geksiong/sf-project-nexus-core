@@ -1,0 +1,72 @@
+# Nightly drift detection (BP-DEVOPS-008 gate 2): compares main with a long-lived target org.
+name: Nightly drift detection
+
+on:
+  schedule:
+    - cron: '0 18 * * *' # 02:00 SGT
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  NODE_VERSION: '24'
+  SF_CLI_VERSION: '2.155.7'
+  SF_DISABLE_TELEMETRY: 'true'
+  SF_AUTOUPDATE_DISABLE: 'true'
+
+jobs:
+  drift:
+    name: Drift against target org
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      SF_TARGET_ORG_AUTH_URL: ${{ secrets.SF_TARGET_ORG_AUTH_URL }}
+    steps:
+      - name: Check target org credentials
+        id: target
+        run: |
+          if [ -z "$SF_TARGET_ORG_AUTH_URL" ]; then
+            echo "::warning title=Drift detection skipped::Add the SF_TARGET_ORG_AUTH_URL repository secret (see docs/devops/github-setup.md)."
+            echo "configured=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "configured=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: actions/checkout@v4
+        if: steps.target.outputs.configured == 'true'
+        with:
+          ref: main
+
+      - uses: actions/setup-node@v4
+        if: steps.target.outputs.configured == 'true'
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Install Salesforce CLI
+        if: steps.target.outputs.configured == 'true'
+        run: npm install --global @salesforce/cli@${{ env.SF_CLI_VERSION }}
+
+      - name: Authenticate target org
+        if: steps.target.outputs.configured == 'true'
+        run: |
+          printf '%s' "$SF_TARGET_ORG_AUTH_URL" > "$RUNNER_TEMP/target.url"
+          sf org login sfdx-url --sfdx-url-file "$RUNNER_TEMP/target.url" --alias drift-target
+          rm -f "$RUNNER_TEMP/target.url"
+
+      - name: Detect drift
+        if: steps.target.outputs.configured == 'true'
+        run: |
+          set +e
+          scripts/devops/drift-detect.sh --target-org drift-target --report drift-report.md
+          status=$?
+          cat drift-report.md >> "$GITHUB_STEP_SUMMARY"
+          exit $status
+
+      - name: Upload drift report
+        if: always() && steps.target.outputs.configured == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: drift-report
+          path: drift-report.md
+          if-no-files-found: ignore

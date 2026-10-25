@@ -1,0 +1,2 @@
+# Fast local gate: format staged files and lint staged LWC. Full gates: npm run verify (and CI).
+npx lint-staged

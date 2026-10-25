@@ -2,22 +2,33 @@ import { createElement } from 'lwc';
 import AdminLimitsCockpit from 'c/adminLimitsCockpit';
 import getAdminCockpitSnapshot from '@salesforce/apex/OrgLimitsService.getAdminCockpitSnapshot';
 
-jest.mock(
-    '@salesforce/apex/OrgLimitsService.getAdminCockpitSnapshot',
-    () => ({ default: jest.fn() }),
-    { virtual: true }
-);
+jest.mock('@salesforce/apex/OrgLimitsService.getAdminCockpitSnapshot', () => ({ default: jest.fn() }), {
+    virtual: true
+});
 
 const SNAPSHOT = {
     overallStatus: 'WARNING',
     generatedAt: '2026-10-25T08:00:00.000Z',
     errorFeedAvailable: true,
     limits: [
-        { name: 'DailyApiRequests', label: 'Daily API Requests', current: 100, max: 1000, percentUsed: 10, status: 'OK' },
+        {
+            name: 'DailyApiRequests',
+            label: 'Daily API Requests',
+            current: 100,
+            max: 1000,
+            percentUsed: 10,
+            status: 'OK'
+        },
         { name: 'DataStorageMB', label: 'Data Storage (MB)', current: 4, max: 5, percentUsed: 80, status: 'WARNING' }
     ],
     recentErrors: [
-        { logId: 'a01', message: 'Boom', origin: 'OpportunityService', loggedTime: '2026-10-25T07:00:00.000Z', severity: 'ERROR' }
+        {
+            logId: 'a01',
+            message: 'Boom',
+            origin: 'OpportunityService',
+            loggedTime: '2026-10-25T07:00:00.000Z',
+            severity: 'ERROR'
+        }
     ]
 };
 
