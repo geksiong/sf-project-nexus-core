@@ -91,6 +91,7 @@ private class HotelConciergeIntegrationTest {
         Assert.isTrue(result.payload.confirmationCode.startsWith('NXB-'), result.payload.confirmationCode);
         Assert.areEqual('Nexus Marina Hotel', result.payload.hotelName);
         Assert.areEqual(600, result.payload.totalPrice, '2 nights x 300');
+        Assert.isNotNull(result.payload.currencyCode);
         Assert.areEqual(CHECK_IN.addDays(2), result.payload.checkOutDate);
         Suite_Booking__c saved = [SELECT Guest_Name__c, Status__c FROM Suite_Booking__c];
         Assert.areEqual('Confirmed', saved.Status__c);

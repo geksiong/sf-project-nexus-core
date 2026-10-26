@@ -16,7 +16,7 @@
         </apiDefinition>
         <descriptionOverride>Finds available hotel suites in a city for a check-in date and number of nights, cheapest first.</descriptionOverride>
         <destructive>false</destructive>
-        <idempotent>false</idempotent>
+        <idempotent>true</idempotent>
         <openWorld>false</openWorld>
         <readOnly>true</readOnly>
         <returnDirect>false</returnDirect>

@@ -47,6 +47,7 @@ _Constraint_ = platform limitation with a workaround in place; _Verify_ = suspec
 | KI-040 | Agentforce   | Verify     | Phase 8 widget rendering and MCP client connection not exercised          |
 | KI-041 | Agentforce   | Constraint | Agentforce profile: specific Dev Hub, beta HXL formats, not in CI         |
 | KI-042 | Agentforce   | Constraint | Agent and MCP activation are org state; re-publishing makes a new version |
+| KI-043 | Agentforce   | Constraint | Booking lock against concurrent saves is not provable in Apex tests       |
 
 ---
 
@@ -379,3 +380,12 @@ _Constraint_ = platform limitation with a workaround in place; _Verify_ = suspec
   publishes only when the agent does not exist yet, then activates it. MCP servers deploy inactive; the setup script
   creates the `McpServerAccess` record that activates them. After changing the Agent Script on an existing org, run
   `sf agent publish authoring-bundle -n Nexus_Hotel_Concierge` and `sf agent activate` by hand.
+
+### KI-043 Booking lock against concurrent saves is not provable in Apex tests — _Constraint_
+
+- **What happens:** two bookings of the same suite saved at the same moment (agent and MCP client) could both pass a
+  read-then-insert overlap check. `HotelBookingFactsSelector.selectSuiteFacts` therefore reads the suites `FOR UPDATE`
+  before the check, serialising bookings per suite until each transaction ends. Apex tests run in one transaction, so
+  the lock itself is not exercised; the overlap rule is.
+- **Impact:** a booking that waits on the lock longer than the row-lock timeout (about 10 s) fails with
+  `UNABLE_TO_LOCK_ROW`, reported by the actions as `DML_ERROR`; retrying the booking is safe.

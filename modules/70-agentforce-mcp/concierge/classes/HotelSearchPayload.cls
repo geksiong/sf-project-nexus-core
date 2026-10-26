@@ -17,6 +17,9 @@ global class HotelSearchPayload {
     @InvocableVariable(label='Nights')
     global Integer nights;
     @AuraEnabled
+    @InvocableVariable(label='Currency Code' description='ISO currency of the rates and totals.')
+    global String currencyCode;
+    @AuraEnabled
     @InvocableVariable(label='Suite Count' description='Number of available suites returned.')
     global Integer suiteCount;
     @AuraEnabled

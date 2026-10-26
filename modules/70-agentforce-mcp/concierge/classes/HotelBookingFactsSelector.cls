@@ -16,7 +16,11 @@ public virtual without sharing class HotelBookingFactsSelector {
         return instance;
     }
 
-    /** @description Rate, capacity and active flag of the given suites. */
+    /**
+     * @description Rate, capacity and active flag of the given suites, locked (FOR UPDATE) until the transaction ends:
+     * concurrent bookings of the same suite are serialised, so the overlap check that follows sees every committed
+     * booking instead of racing a parallel save.
+     */
     public virtual Map<Id, Hotel_Suite__c> selectSuiteFacts(Set<Id> suiteIds) {
         if (suiteIds == null || suiteIds.isEmpty()) {
             return new Map<Id, Hotel_Suite__c>();
@@ -27,6 +31,7 @@ public virtual without sharing class HotelBookingFactsSelector {
                 FROM Hotel_Suite__c
                 WHERE Id IN :suiteIds
                 WITH SYSTEM_MODE
+                FOR UPDATE
             ]
         );
     }

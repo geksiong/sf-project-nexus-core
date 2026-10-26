@@ -71,7 +71,17 @@
                         {
                           "definition": "tile/text",
                           "attributes": {
-                            "text": "{!$suite.hotelName}, sleeps {!$suite.maxGuests}",
+                            "text": "{!$suite.hotelName}",
+                            "variant": "caption"
+                          }
+                        },
+                        {
+                          "definition": "tile/text",
+                          "meta": {
+                            "if": "{!NOT(ISBLANK($suite.maxGuests))}"
+                          },
+                          "attributes": {
+                            "text": "Sleeps {!$suite.maxGuests}",
                             "variant": "caption"
                           }
                         },
@@ -94,14 +104,14 @@
                         {
                           "definition": "tile/text",
                           "attributes": {
-                            "text": "USD {!$suite.nightlyRate} / night",
+                            "text": "{!$attrs.currencyCode} {!$suite.nightlyRate} / night",
                             "weight": "bold"
                           }
                         },
                         {
                           "definition": "tile/text",
                           "attributes": {
-                            "text": "USD {!$suite.totalPrice} total",
+                            "text": "{!$attrs.currencyCode} {!$suite.totalPrice} total",
                             "variant": "caption"
                           }
                         },
