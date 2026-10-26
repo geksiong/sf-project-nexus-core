@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Expires_On__c</fullName>
+    <description>Last day the approved registration reserves the customer (approval + 90 days). It is released earlier when its opportunity closes. Set by DealRegistrationService; DealRegistrationExpiryJob marks released registrations Expired or Closed.</description>
+    <label>Reservation Expires On</label>
+    <required>false</required>
+    <trackHistory>false</trackHistory>
+    <type>Date</type>
+</CustomField>

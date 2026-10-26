@@ -90,7 +90,7 @@ private class EscalateCaseActionTest {
     }
 
     @IsTest
-    static void closedEscalatedAndMissingCasesAreRejected() {
+    static void closedCasesReopenAndEscalatedOrMissingCasesAreRejected() {
         Case closed = insertCase('Closed');
         Case escalated = insertCase('Working');
         update new Case(Id = escalated.Id, Status = CaseEscalationService.STATUS_ESCALATED);
@@ -108,7 +108,11 @@ private class EscalateCaseActionTest {
             );
         }
 
-        Assert.areEqual(CaseEscalationService.ERROR_INVALID_STATE, results[0].errorCode);
+        Assert.isTrue(results[0].isSuccess, 'KI-001: escalating a closed case reopens it: ' + results[0]);
+        Case reopened = [SELECT Status, IsClosed, OwnerId FROM Case WHERE Id = :closed.Id];
+        Assert.areEqual(CaseEscalationService.STATUS_ESCALATED, reopened.Status);
+        Assert.isFalse(reopened.IsClosed);
+        Assert.areEqual(ServiceDeskTestFixtures.escalationQueueId(), reopened.OwnerId);
         Assert.areEqual(CaseEscalationService.ERROR_INVALID_STATE, results[1].errorCode);
         Assert.isTrue(results[1].errorMessage.contains('already escalated'), results[1].errorMessage);
         Assert.areEqual(CaseEscalationService.ERROR_NOT_FOUND, results[2].errorCode);

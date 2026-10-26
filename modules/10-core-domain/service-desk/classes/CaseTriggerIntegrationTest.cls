@@ -74,6 +74,27 @@ private class CaseTriggerIntegrationTest {
         Assert.areEqual(2, commentBodies(c.Id).size(), 'Each escalation is recorded');
     }
 
+    /**
+     * @description KI-001: a case created as Escalated lands in Tier 2 with its comment, even when created with
+     * the active assignment rule (which runs after triggers and excludes escalated cases).
+     */
+    @IsTest
+    static void caseCreatedAsEscalatedIsRoutedToTier2() {
+        User agent = ServiceDeskTestFixtures.getUser(ServiceDeskTestFixtures.AGENT_LAST_NAME);
+        Case c = ServiceDeskTestFixtures.newCase(null, agent.Id, 'Low');
+        c.Status = CaseEscalationService.STATUS_ESCALATED;
+        c.Escalation_Reason__c = 'Imported P1 incident';
+        Database.DMLOptions options = new Database.DMLOptions();
+        options.assignmentRuleHeader.useDefaultRule = true;
+
+        Database.insert(c, options);
+
+        Case saved = reload(c.Id);
+        Assert.areEqual(ServiceDeskTestFixtures.escalationQueueId(), saved.OwnerId, 'Not re-routed to Tier 1');
+        Assert.areEqual(CaseEscalationService.PRIORITY_HIGH, saved.Priority);
+        Assert.areEqual(new List<String>{ 'Escalated to Tier 2: Imported P1 incident' }, commentBodies(c.Id));
+    }
+
     @IsTest
     static void entitlementStartsMilestonesThatCompleteAsTheCaseProgresses() {
         Account acc = TestDataFactory.createAccounts(1, true)[0];

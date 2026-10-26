@@ -154,6 +154,26 @@ private class CaseEscalationServiceTest {
 
         Assert.isTrue(CaseEscalationService.isEscalation(changed, old));
         Assert.isFalse(CaseEscalationService.isEscalation(changed, changed), 'Already escalated');
-        Assert.isFalse(CaseEscalationService.isEscalation(changed, null), 'Insert is not an escalation');
+        Assert.isTrue(CaseEscalationService.isEscalation(changed, null), 'Created as Escalated');
+        Assert.isFalse(CaseEscalationService.isEscalation(old, null), 'Created in another status');
+    }
+
+    /** @description KI-001: a case created as Escalated (import, integration) gets the full policy. */
+    @IsTest
+    static void caseCreatedAsEscalatedGetsThePolicy() {
+        mockFacts(QUEUE_ID);
+        Case created = new Case(Status = CaseEscalationService.STATUS_ESCALATED, Priority = 'Low', OwnerId = AGENT_ID);
+        Case withReason = new Case(
+            Status = CaseEscalationService.STATUS_ESCALATED,
+            Escalation_Reason__c = 'Imported P1'
+        );
+
+        CaseEscalationService.applyEscalationPolicy(new List<Case>{ created, withReason }, null);
+
+        Assert.areEqual(QUEUE_ID, created.OwnerId);
+        Assert.areEqual(CaseEscalationService.PRIORITY_HIGH, created.Priority);
+        Assert.isNotNull(created.Escalated_On__c);
+        Assert.areEqual(CaseEscalationService.REASON_MANUAL, created.Escalation_Reason__c);
+        Assert.areEqual('Imported P1', withReason.Escalation_Reason__c, 'A reason given on insert is kept');
     }
 }

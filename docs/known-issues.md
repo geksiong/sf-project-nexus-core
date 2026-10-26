@@ -9,7 +9,6 @@ _Constraint_ = platform limitation with a workaround in place; _Verify_ = suspec
 
 | ID     | Area         | Status     | Summary                                                                 |
 | ------ | ------------ | ---------- | ----------------------------------------------------------------------- |
-| KI-001 | Service desk | Decision   | Two paths skip the escalation policy                                    |
 | KI-002 | Service desk | Verify     | Escalate Case flow: "optional" Technical SME may be required            |
 | KI-003 | UI           | Verify     | Phase 1 and Phase 3 screens not exercised in a browser                  |
 | KI-004 | Sales        | Open       | Discount approval status is protected only by field-level security      |
@@ -42,22 +41,12 @@ _Constraint_ = platform limitation with a workaround in place; _Verify_ = suspec
 | KI-032 | Experience   | Constraint | Retrieved site bundles can contain properties the deploy schema rejects  |
 | KI-033 | Experience   | Constraint | Site bundles embed regenerated content Ids (drift is advisory)           |
 | KI-034 | Experience   | Constraint | Standard external profiles cannot create users; custom profile perms ignored |
-| KI-035 | Partner      | Decision   | Approved deal registrations reserve the customer indefinitely            |
 | KI-036 | Experience   | Constraint | Guest Apex responses are CDN-cached: unpublished content can linger      |
 
 ---
 
 ## Service desk (Phase 3)
 
-### KI-001 Two paths skip the escalation policy — _Decision_
-
-- **What happens:** the escalation policy (High priority, Tier 2 queue, timestamp, comment, case team) runs only on
-  update. (a) A case _inserted_ with `Status = Escalated` (data import, integration) is not routed or prioritised.
-  (b) An agent can set a **closed** case straight to `Escalated`, which reopens it without the checks that
-  `EscalateCaseAction` applies (the action rejects closed cases with `INVALID_STATE`).
-- **Decision needed:** should an escalated status on insert apply the full policy? Should closed → Escalated be
-  blocked (validation in `CaseEscalationService.applyEscalationPolicy`), or allowed as a deliberate reopen?
-- **Where:** `CaseEscalationService.applyEscalationPolicy`, `CaseTriggerHandler.beforeInsert`.
 
 ### KI-002 Escalate Case flow: "optional" Technical SME may be required — _Verify_
 
@@ -326,17 +315,6 @@ _Constraint_ = platform limitation with a workaround in place; _Verify_ = suspec
   `Nexus Partner User` profile instead (the recommended practice). Object permissions in that profile's metadata
   were ignored on deploy, so Account/Contact read is granted by `PS_Partner_Deal_Registration`.
 
-### KI-035 Approved deal registrations reserve the customer indefinitely — _Decision_
-
-- **What happens:** the channel conflict rule treats Submitted and Approved registrations as open (Rejected and
-  Withdrawn, set when the partner recalls, release the customer). Once approved, no other partner can ever register
-  that customer, even after the opportunity is lost or closed years later. There is no expiry, and registrations stay
-  editable after approval. The converted opportunity is owned by the channel manager and not shared back, so the
-  registering partner sees an Opportunity link they cannot open and cannot follow the deal.
-- **Decision needed:** should a registration expire (e.g. 90 days, or when its opportunity closes)? Should it be
-  locked after approval? Should the partner get read access to the opportunity (e.g. an Opportunity share to the
-  partner account's portal role group, or Opportunity Partner records)? Then add the rules to
-  `DealRegistrationService` (and a scheduled expiry if time-based).
 
 ### KI-036 Guest Apex responses are CDN-cached — _Constraint_
 

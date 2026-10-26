@@ -53,15 +53,8 @@
         </defaultConnector>
         <defaultConnectorLabel>Open</defaultConnectorLabel>
         <rules>
-            <name>Closed_or_Escalated</name>
-            <conditionLogic>or</conditionLogic>
-            <conditions>
-                <leftValueReference>Get_Case.IsClosed</leftValueReference>
-                <operator>EqualTo</operator>
-                <rightValue>
-                    <booleanValue>true</booleanValue>
-                </rightValue>
-            </conditions>
+            <name>Already_Escalated</name>
+            <conditionLogic>and</conditionLogic>
             <conditions>
                 <leftValueReference>Get_Case.Status</leftValueReference>
                 <operator>EqualTo</operator>
@@ -72,7 +65,7 @@
             <connector>
                 <targetReference>Not_Escalatable_Screen</targetReference>
             </connector>
-            <label>Closed or Already Escalated</label>
+            <label>Already Escalated</label>
         </rules>
     </decisions>
     <decisions>
@@ -144,7 +137,6 @@
         <queriedFields>Subject</queriedFields>
         <queriedFields>Status</queriedFields>
         <queriedFields>Priority</queriedFields>
-        <queriedFields>IsClosed</queriedFields>
         <storeOutputAutomatically>true</storeOutputAutomatically>
     </recordLookups>
     <runInMode>DefaultMode</runInMode>
@@ -241,7 +233,7 @@
         <allowPause>false</allowPause>
         <fields>
             <name>Not_Escalatable_Message</name>
-            <fieldText>&lt;p&gt;Case &lt;strong&gt;{!Get_Case.CaseNumber}&lt;/strong&gt; is {!Get_Case.Status}. Only open cases that are not already escalated can be escalated.&lt;/p&gt;</fieldText>
+            <fieldText>&lt;p&gt;Case &lt;strong&gt;{!Get_Case.CaseNumber}&lt;/strong&gt; is already escalated.&lt;/p&gt;</fieldText>
             <fieldType>DisplayText</fieldType>
         </fields>
         <showFooter>true</showFooter>

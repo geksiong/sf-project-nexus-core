@@ -1,6 +1,7 @@
 public with sharing class CaseTriggerHandler extends TriggerHandler {
     protected override void beforeInsert(List<SObject> newRecords) {
         CaseSlaService.assignEntitlements((List<Case>) newRecords, null);
+        CaseEscalationService.applyEscalationPolicy((List<Case>) newRecords, null);
     }
 
     protected override void beforeUpdate(List<SObject> updatedRecords, Map<Id, SObject> oldRecordMap) {
@@ -9,6 +10,7 @@ public with sharing class CaseTriggerHandler extends TriggerHandler {
     }
 
     protected override void afterInsert(List<SObject> newRecords, Map<Id, SObject> newRecordMap) {
+        CaseEscalationService.recordEscalations((List<Case>) newRecords, null);
         CaseTeamService.provisionCaseTeams((List<Case>) newRecords, null);
     }
 

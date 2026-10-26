@@ -93,8 +93,8 @@ _Available - Cases_).
 
 ### Service desk rules
 
-- **Escalation** (one policy for every channel: the Escalate Case flow / Agentforce / MCP, an SLA breach, or an agent
-  setting _Status = Escalated_): priority High, owner the **Tier 2 Technical Escalations** queue, `Escalated_On__c`
+- **Escalation** (one policy for every channel: the Escalate Case flow / Agentforce / MCP, an SLA breach, an agent
+  setting _Status = Escalated_ (a closed case is reopened), or a case created as Escalated): priority High, owner the **Tier 2 Technical Escalations** queue, `Escalated_On__c`
   stamped, a default reason when none was given, and the reason recorded as a private case comment.
 - **Case team:** on escalation the previous owner (if a user) joins as _Escalating Agent_ and keeps access; the
   `Technical_SME__c` user joins as _Technical SME_; when a case becomes High priority the account owner joins as
@@ -187,15 +187,15 @@ Report anything that differs; fixes go in a follow-up.
 Full profile (`setup-scratch-headless.sh --profile full`), [ADR 0004](docs/adr/0004-dual-experience-cloud-runtimes.md).
 Back office: **Nexus Portals** app. Sites: Setup → Digital Experiences → All Sites.
 
-| Component (`modules/30-experience-cloud`)                                                                      | Purpose                                                                                                                                           |
-| -------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Nexus Hospitality** (LWR, `DigitalExperienceBundle`, public access), `/hospitality`                          | Public portal; home page shows `hospitalityArticles` (Light DOM LWC)                                                                              |
-| `Portal_Article__c` + **Portal Content Approval** (author's manager)                                           | Draft → In Review → Published; only Published articles are visible to the site guest user (guest sharing rule)                                    |
-| `PortalContentController` → `PortalContentService` → `PortalArticlesSelector` (user mode)                      | Guest reads under the guest user's own sharing and field access; no `without sharing`                                                             |
-| **Nexus Partner Central** (Aura, `ExperienceBundle`, Partner Central template, PRM), `/partners`               | Partner portal; home page sidebar runs the **Partner Deal Registration** flow                                                                     |
-| `Deal_Registration__c` + **Deal Registration Approval** (channel manager = partner account owner)              | Private OWD; partner role hierarchy; approval creates the customer account and opportunity; a recall marks it Withdrawn and releases the customer |
-| `DealRegistrationService`, `DealRegistrationFactsSelector`, `SubmitDealRegistrationAction`                     | Routing, channel conflict rule (one open registration per customer across partners), conversion                                                   |
-| `PS_Portal_Content_Author`, `PS_Partner_Deal_Registration`, `PS_Channel_Manager`, `Nexus Partner User` profile | Access model                                                                                                                                      |
+| Component (`modules/30-experience-cloud`)                                                                      | Purpose                                                                                                                                                                                                                                                   |
+| -------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Nexus Hospitality** (LWR, `DigitalExperienceBundle`, public access), `/hospitality`                          | Public portal; home page shows `hospitalityArticles` (Light DOM LWC)                                                                                                                                                                                      |
+| `Portal_Article__c` + **Portal Content Approval** (author's manager)                                           | Draft → In Review → Published; only Published articles are visible to the site guest user (guest sharing rule)                                                                                                                                            |
+| `PortalContentController` → `PortalContentService` → `PortalArticlesSelector` (user mode)                      | Guest reads under the guest user's own sharing and field access; no `without sharing`                                                                                                                                                                     |
+| **Nexus Partner Central** (Aura, `ExperienceBundle`, Partner Central template, PRM), `/partners`               | Partner portal; home page sidebar runs the **Partner Deal Registration** flow                                                                                                                                                                             |
+| `Deal_Registration__c` + **Deal Registration Approval** (channel manager = partner account owner)              | Private OWD; partner role hierarchy; approval locks the registration, creates the customer account and opportunity (shared read-only with the partner) and reserves the customer for 90 days or until the opportunity closes; a recall marks it Withdrawn |
+| `DealRegistrationService`, `DealRegistrationFactsSelector`, `SubmitDealRegistrationAction`                     | Routing, channel conflict rule (one live reservation per customer across partners), conversion; `DealRegistrationExpiryJob` (daily) marks lapsed reservations Expired / Closed                                                                            |
+| `PS_Portal_Content_Author`, `PS_Partner_Deal_Registration`, `PS_Channel_Manager`, `Nexus Partner User` profile | Access model                                                                                                                                                                                                                                              |
 
 Personas: the admin authors content and the Sales Manager approves it; the Sales Manager is also the channel manager
 who owns **Nexus Global Channel Partners**, whose contact **Tom Alvarez** is the partner user (Partner Community
@@ -219,7 +219,8 @@ and blocks a second registration for the same customer. Still to check in a brow
 4. **Approval:** as Sam Manager, approve the registration (Approval Requests). Its **Opportunity** field links to the
    new opportunity, owned by Sam, with Lead Source "Partner Referral".
 5. **Partner visibility:** as Tom, open `/partners/s/recordlist/Deal_Registration__c/Default`: Tom sees his own
-   registrations only.
+   registrations only, and the approved registration's **Opportunity** link opens (read only). The registration is
+   locked and shows **Reservation Expires On** 90 days out.
 
 ## Quality Gates & CI (Phase 2)
 

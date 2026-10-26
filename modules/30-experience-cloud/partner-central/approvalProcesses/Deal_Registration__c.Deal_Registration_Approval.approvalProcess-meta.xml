@@ -42,7 +42,7 @@
             <type>FieldUpdate</type>
         </action>
     </finalApprovalActions>
-    <finalApprovalRecordLock>false</finalApprovalRecordLock>
+    <finalApprovalRecordLock>true</finalApprovalRecordLock>
     <finalRejectionActions>
         <action>
             <name>Deal_Registration_Rejected</name>
