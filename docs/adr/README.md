@@ -9,3 +9,4 @@
 | [0004](./0004-dual-experience-cloud-runtimes.md) | Dual Experience Cloud Runtimes (LWR vs. Aura Partner Central) | Accepted | 2026-10-22 |
 | [0005](./0005-source-driven-packaging-strategy.md) | Source-Driven Modular Packaging Strategy (Inner vs. Outer Loop) | Accepted | 2026-10-22 |
 | [0006](./0006-analytics-templates-and-ui-bundles.md) | Decoupled Analytics Templates and Multi-Framework UI Bundles | Accepted | 2026-10-26 |
+| [0007](./0007-agentforce-mcp-hxl.md) | Agentforce Agent, Hosted MCP Server and HXL Widgets over One Action Layer | Accepted | 2026-10-26 |

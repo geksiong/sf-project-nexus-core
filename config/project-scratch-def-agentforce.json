@@ -1,0 +1,28 @@
+{
+  "orgName": "Nexus Core Agentforce Scratch Org",
+  "edition": "Developer",
+  "features": ["EnableSetPasswordInApi", "Entitlements", "Einstein1AIPlatform"],
+  "settings": {
+    "lightningExperienceSettings": {
+      "enableS1DesktopEnabled": true
+    },
+    "entitlementSettings": {
+      "enableEntitlements": true
+    },
+    "omniChannelSettings": {
+      "enableOmniChannel": true
+    },
+    "einsteinGptSettings": {
+      "enableEinsteinGptPlatform": true
+    },
+    "einsteinCopilotSettings": {
+      "enableEinsteinGptCopilot": true
+    },
+    "agentPlatformSettings": {
+      "enableAgentPlatform": true
+    },
+    "uiWidgetSettings": {
+      "hxlEnabled": true
+    }
+  }
+}

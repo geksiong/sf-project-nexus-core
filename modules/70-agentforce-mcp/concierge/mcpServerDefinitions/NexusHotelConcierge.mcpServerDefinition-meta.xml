@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<McpServerDefinition xmlns="http://soap.sforce.com/2006/04/metadata">
+    <description>Nexus Core Demo App 9: search and book hotel suites; search results render as the HXL hotelCard widget.</description>
+    <masterLabel>Nexus Hotel Concierge</masterLabel>
+    <resources>
+        <description>Available suites rendered as the hotelCard widget.</description>
+        <resourceName>hotelSearchUi</resourceName>
+        <resourceTitle>Hotel Suites</resourceTitle>
+        <resourceUri>ui://widget/lightningType/c__hotelSearchResult</resourceUri>
+    </resources>
+    <tools>
+        <apiDefinition>
+            <apiIdentifier>aa:apex-HotelSearchAction</apiIdentifier>
+            <apiSource>API_CATALOG</apiSource>
+            <operation>HotelSearchAction</operation>
+        </apiDefinition>
+        <descriptionOverride>Finds available hotel suites in a city for a check-in date and number of nights, cheapest first.</descriptionOverride>
+        <destructive>false</destructive>
+        <idempotent>false</idempotent>
+        <openWorld>false</openWorld>
+        <readOnly>true</readOnly>
+        <returnDirect>false</returnDirect>
+        <toolName>searchHotels</toolName>
+        <toolTitle>Search Hotel Suites</toolTitle>
+        <uiResource>hotelSearchUi</uiResource>
+    </tools>
+    <tools>
+        <apiDefinition>
+            <apiIdentifier>aa:apex-BookHotelSuiteAction</apiIdentifier>
+            <apiSource>API_CATALOG</apiSource>
+            <operation>BookHotelSuiteAction</operation>
+        </apiDefinition>
+        <descriptionOverride>Reserves an available hotel suite (suite Id from searchHotels) for a check-in date and number of nights for the signed-in user and returns the confirmation code.</descriptionOverride>
+        <destructive>false</destructive>
+        <idempotent>false</idempotent>
+        <openWorld>false</openWorld>
+        <readOnly>false</readOnly>
+        <returnDirect>false</returnDirect>
+        <toolName>bookHotelSuite</toolName>
+        <toolTitle>Book Hotel Suite</toolTitle>
+    </tools>
+</McpServerDefinition>

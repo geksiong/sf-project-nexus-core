@@ -12,7 +12,7 @@
  *   unreferenced-flow           screen flows launched by no action, page, flow or permission set
  *   unreferenced-apex           non-test Apex classes referenced by nothing and not a platform entry point
  *   unreferenced-widget         HXL UiWidgetBundles bound by no Custom Lightning Type renderer
- *   unreferenced-clt            Custom Lightning Types referenced by no MCP resource or other type
+ *   unreferenced-clt            Custom Lightning Types with no renderer referenced by no other type or MCP resource
  *   unreferenced-vip            OmniStudio Integration Procedures (VIPs, by Type_SubType) referenced by nothing
  *   unreferenced-datamapper     OmniStudio Data Mappers used by no Integration Procedure or FlexCard
  *   unreferenced-flexcard       OmniStudio FlexCards placed on no Lightning page or parent card
@@ -31,7 +31,7 @@ const FLS_EXEMPT_TYPES = new Set(['MasterDetail', 'Summary', 'AutoNumber']);
 
 function main() {
     const config = repo.loadConfig();
-    const modules = repo.profileModules(config, 'full');
+    const modules = repo.allModules(config);
     const files = modules.flatMap((dir) => repo.listFiles(dir));
     const text = new Map(files.map((f) => [f, repo.readText(f)]));
     const byType = (dir, suffix) =>
@@ -147,15 +147,17 @@ function main() {
             files.filter((f) => f.includes(`/${type}/`)).map((f) => f.replace(new RegExp(`(/${type}/[^/]+)/.*$`), '$1'))
         )
     ];
-    for (const dir of bundleDirs('ui-widget-bundles')) {
+    for (const dir of bundleDirs('uiWidgets')) {
         const name = path.basename(dir);
         if (!referencedOutside(name, [dir]))
             report('unreferenced-widget', name, 'No Custom Lightning Type renderer binds this widget');
     }
-    for (const dir of bundleDirs('custom-lightning-types')) {
+    // A type with a renderer is an entry point (picked as an Agentforce action's output rendering in Setup).
+    for (const dir of bundleDirs('lightningTypes')) {
         const name = path.basename(dir);
-        if (!referencedOutside(name, [dir]))
-            report('unreferenced-clt', name, 'No MCP resource or other type references this type');
+        const hasRenderer = files.includes(`${dir}/renderer.json`);
+        if (!hasRenderer && !referencedOutside(name, [dir]))
+            report('unreferenced-clt', name, 'No renderer, and no MCP resource or other type references this type');
     }
     // OmniStudio components are referenced by name (Type_SubType for IPs), not by versioned unique name.
     const omniName = (file) => {

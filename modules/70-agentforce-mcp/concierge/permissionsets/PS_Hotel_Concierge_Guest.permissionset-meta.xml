@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<PermissionSet xmlns="http://soap.sforce.com/2006/04/metadata">
+    <classAccesses><apexClass>BookHotelSuiteAction</apexClass><enabled>true</enabled></classAccesses>
+    <classAccesses><apexClass>HotelSearchAction</apexClass><enabled>true</enabled></classAccesses>
+    <description>Nexus Hotel Concierge guest: search suites and book them through the Agentforce actions or the MCP tools. Bookings are private to the guest who made them.</description>
+    <fieldPermissions><editable>false</editable><field>Hotel_Suite__c.Room_Tier__c</field><readable>true</readable></fieldPermissions>
+    <fieldPermissions><editable>false</editable><field>Hotel_Suite__c.Max_Guests__c</field><readable>true</readable></fieldPermissions>
+    <fieldPermissions><editable>false</editable><field>Hotel_Suite__c.Is_Active__c</field><readable>true</readable></fieldPermissions>
+    <fieldPermissions><editable>true</editable><field>Suite_Booking__c.Guest_Name__c</field><readable>true</readable></fieldPermissions>
+    <fieldPermissions><editable>true</editable><field>Suite_Booking__c.Guests__c</field><readable>true</readable></fieldPermissions>
+    <fieldPermissions><editable>false</editable><field>Suite_Booking__c.Total_Price__c</field><readable>true</readable></fieldPermissions>
+    <fieldPermissions><editable>true</editable><field>Suite_Booking__c.Status__c</field><readable>true</readable></fieldPermissions>
+    <hasActivationRequired>false</hasActivationRequired>
+    <label>Hotel Concierge Guest</label>
+    <objectPermissions><allowCreate>false</allowCreate><allowDelete>false</allowDelete><allowEdit>false</allowEdit><allowRead>true</allowRead><modifyAllRecords>false</modifyAllRecords><object>Hotel_Suite__c</object><viewAllRecords>false</viewAllRecords></objectPermissions>
+    <objectPermissions><allowCreate>true</allowCreate><allowDelete>false</allowDelete><allowEdit>true</allowEdit><allowRead>true</allowRead><modifyAllRecords>false</modifyAllRecords><object>Suite_Booking__c</object><viewAllRecords>false</viewAllRecords></objectPermissions>
+</PermissionSet>

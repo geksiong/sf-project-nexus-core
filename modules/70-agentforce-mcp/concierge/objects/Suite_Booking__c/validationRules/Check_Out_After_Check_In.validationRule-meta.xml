@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ValidationRule xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Check_Out_After_Check_In</fullName>
+    <active>true</active>
+    <description>A booking lasts at least one night.</description>
+    <errorConditionFormula>Check_Out__c &lt;= Check_In__c</errorConditionFormula>
+    <errorDisplayField>Check_Out__c</errorDisplayField>
+    <errorMessage>Check-out must be after check-in.</errorMessage>
+</ValidationRule>

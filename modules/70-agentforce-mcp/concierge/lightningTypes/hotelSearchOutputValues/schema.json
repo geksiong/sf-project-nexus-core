@@ -1,0 +1,13 @@
+{
+  "title": "Hotel search output values",
+  "description": "Output variables of the searchHotels MCP tool (HotelSearchAction.Result).",
+  "lightning:type": "lightning__objectType",
+  "lightning:tags": ["mcp"],
+  "unevaluatedProperties": false,
+  "properties": {
+    "isSuccess": { "title": "Is Success", "lightning:type": "lightning__booleanType" },
+    "errorCode": { "title": "Error Code", "lightning:type": "lightning__textType" },
+    "errorMessage": { "title": "Error Message", "lightning:type": "lightning__textType" },
+    "payload": { "title": "Payload", "lightning:type": "@apexClassType/c__HotelSearchPayload" }
+  }
+}

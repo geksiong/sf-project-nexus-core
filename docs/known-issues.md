@@ -25,7 +25,6 @@ _Constraint_ = platform limitation with a workaround in place; _Verify_ = suspec
 | KI-015 | DevOps       | Open       | Non-blocking Code Analyzer findings                                     |
 | KI-016 | DevOps       | Open       | No 2GP release path yet                                                 |
 | KI-017 | DevOps       | Open       | CI is not active until the repository is pushed and secrets are set     |
-| KI-018 | Agentforce   | Open       | Phase 8 scaffold: CLT renderer binds fields the schema does not expose  |
 | KI-020 | CapEx        | Constraint | Criteria-based sharing cannot be asserted in Apex tests                 |
 | KI-021 | Reporting    | Constraint | Joined report on the CapEx custom report type is rejected ("Obsolete")  |
 | KI-022 | CapEx        | Constraint | ERP integration is simulated; named credential is the legacy format     |
@@ -35,7 +34,7 @@ _Constraint_ = platform limitation with a workaround in place; _Verify_ = suspec
 | KI-026 | OmniStudio   | Constraint | No Apex/REST entry point to run an Integration Procedure in core runtime |
 | KI-027 | OmniStudio   | Constraint | Components deploy inactive; API-activated FlexCards generate no LWC      |
 | KI-028 | OmniStudio   | Constraint | `enableOmniStudioMetadata` is irreversible and restricts names           |
-| KI-029 | DevOps       | Open       | Full-profile modules are not deployed or tested in CI                    |
+| KI-029 | DevOps       | Open       | Full- and agentforce-profile modules are not deployed or tested in CI    |
 | KI-030 | Experience   | Verify     | Phase 6 pages not exercised in a browser                                 |
 | KI-031 | Experience   | Constraint | Site metadata holds org-specific values (deploy-time placeholders)       |
 | KI-032 | Experience   | Constraint | Retrieved site bundles can contain properties the deploy schema rejects  |
@@ -45,6 +44,9 @@ _Constraint_ = platform limitation with a workaround in place; _Verify_ = suspec
 | KI-037 | Analytics/UI | Verify     | Phase 7 dashboard and React explorer not exercised in a browser          |
 | KI-038 | DevOps       | Constraint | UIBundle and WaveTemplateBundle deploy only at API 66.0 (manifest deploy) |
 | KI-039 | Analytics    | Constraint | The analytics app is created from the template, not deployed             |
+| KI-040 | Agentforce   | Verify     | Phase 8 widget rendering and MCP client connection not exercised          |
+| KI-041 | Agentforce   | Constraint | Agentforce profile: specific Dev Hub, beta HXL formats, not in CI         |
+| KI-042 | Agentforce   | Constraint | Agent and MCP activation are org state; re-publishing makes a new version |
 
 ---
 
@@ -179,15 +181,6 @@ _Constraint_ = platform limitation with a workaround in place; _Verify_ = suspec
   `SF_TARGET_ORG_AUTH_URL` (nightly drift) secrets and branch protection are set, no workflow runs.
 - **Resolution:** follow `docs/devops/github-setup.md`.
 
-## Later-phase scaffolding
-
-### KI-018 Phase 8: CLT renderer binds fields the schema does not expose — _Open_
-
-- **What happens:** `70-agentforce-mcp/custom-lightning-types/hotelInfoResult/renderer.json` binds
-  `$payload.hotelDetails.*`, but the result schema exposes `outputValues`. Allowlisted (`clt-renderer-binding`) in
-  `config/devops/nexus-devops.json`.
-- **Resolution:** fix the binding when Phase 8 starts and remove the allowlist entry.
-
 ## Back-office CapEx (Phase 4)
 
 ### KI-020 Criteria-based sharing cannot be asserted in Apex tests — _Constraint_
@@ -273,12 +266,13 @@ _Constraint_ = platform limitation with a workaround in place; _Verify_ = suspec
   `OmniStudio` settings at API 62–68 ("unknown"), although deploying them works.
 - **Impact:** enabling it in a sandbox or production org is a one-way change: plan it.
 
-### KI-029 Full-profile modules are not deployed or tested in CI — _Open_
+### KI-029 Full- and agentforce-profile modules are not deployed or tested in CI — _Open_
 
-- **What happens:** CI Gate 3 builds the headless org, which has no OmniStudio or Experience Cloud.
-  `modules/20-omnistudio` and `modules/30-experience-cloud` get the static gates only; deploy, Apex tests and drift
-  run manually with `--profile full` (a full bootstrap takes ~12 minutes, most of it site deployment).
-- **Resolution:** a second CI job on the full definition (manual dispatch or nightly, to save scratch-org quota).
+- **What happens:** CI Gate 3 builds the headless org. The full-profile modules (20 to 50) and the agentforce-profile
+  modules (60, 70) get the static gates only; deploy, Apex tests and drift run manually with `--profile full` (a full
+  bootstrap takes ~17 minutes, most of it site deployment) or `--profile agentforce` on DevHubAI (KI-041).
+- **Resolution:** CI jobs on the full and agentforce definitions (manual dispatch or nightly, to save scratch-org
+  quota; the agentforce job needs a DevHubAI auth URL secret).
 
 ## Experience Cloud (Phase 6)
 
@@ -355,3 +349,33 @@ _Constraint_ = platform limitation with a workaround in place; _Verify_ = suspec
   deleted (or `sf analytics app update`) in an existing org. A retrieved template must be checked for org Ids and
   usernames before commit; the current one has none. The recipe reads connected objects synced by the Analytics
   Integration User, so new fields need its access and a template update.
+
+## Agentforce, MCP & HXL (Phase 8)
+
+### KI-040 Phase 8 widget rendering and MCP client connection not exercised — _Verify_
+
+- **What happens:** the agent was exercised with `sf agent preview` against live actions (search returned the
+  structured payload, booking with confirmation, double booking refused), the widget and types passed the platform's
+  deploy-time validation, and the MCP server is active with both tools. Nobody has seen `hotelCard` render in the
+  Agentforce panel (including the interpolated texts such as `USD {!$suite.nightlyRate} / night` and the Book button's
+  `action/sendMessage`), and no MCP client has connected: the hosted endpoint rejects CLI session tokens and needs an
+  External Client App with the `mcp_api` scope (OAuth in a browser).
+- **Resolution:** run the README "Click-through checklist" (Phase 8).
+
+### KI-041 Agentforce profile: specific Dev Hub, beta HXL formats, not in CI — _Constraint_
+
+- **What happens:** `--profile agentforce` needs a Dev Hub whose scratch orgs can have `Einstein1AIPlatform` (DevHubAI);
+  the free DevHubGS orgs cannot. CI covers the static gates only (as for the full profile, KI-029). HXL is beta and its
+  formats were confirmed by deploy-time validation: list attributes need `items`; `tile/icon` names come from a fixed
+  set that the error message truncates (the header icon was dropped); the platform drops `"type"` from Custom Lightning
+  Type schemas, so source omits it. `BotSettings.enableBots` needs legal-terms acceptance and is not set (employee
+  agents do not need it).
+- **Impact:** a DevHubAI scratch org is the only place to deploy and test modules 60 and 70.
+
+### KI-042 Agent and MCP activation are org state; re-publishing makes a new version — _Constraint_
+
+- **What happens:** the agent's source is the Agent Script bundle; `sf agent publish authoring-bundle` compiles it into
+  `AiAgentDefinition` / `Bot` metadata (not committed) and each publish creates a new agent version. The setup script
+  publishes only when the agent does not exist yet, then activates it. MCP servers deploy inactive; the setup script
+  creates the `McpServerAccess` record that activates them. After changing the Agent Script on an existing org, run
+  `sf agent publish authoring-bundle -n Nexus_Hotel_Concierge` and `sf agent activate` by hand.

@@ -6,7 +6,7 @@ You are assisting in building **Nexus Core**, an enterprise-grade, modular Sales
 
 ## 1. Scratch Org Bootstrap & Verification Recipe
 
-When executing tasks or testing deployments in an ephemeral scratch org, use the bootstrap script (Phases 1-4, headless profile; add `--profile full` for Phase 5+ modules such as OmniStudio, which also uses `config/project-scratch-def-full.json`):
+When executing tasks or testing deployments in an ephemeral scratch org, use the bootstrap script (Phases 1-4, headless profile; add `--profile full` for Phase 5-7 modules such as OmniStudio, which uses `config/project-scratch-def-full.json`, or `--profile agentforce --dev-hub DevHubAI` for Phase 8, which uses `config/project-scratch-def-agentforce.json` and needs a Dev Hub entitled to Agentforce scratch orgs):
 
 ```bash
 scripts/org-init/setup-scratch-headless.sh --alias nexus-dev --dev-hub DevHubGS --days 1
@@ -49,7 +49,7 @@ sf apex run -f scripts/org-init/seed-capex.apex          # CapEx requests via th
 scripts/devops/run-apex-tests.sh --target-org nexus-dev
 ```
 
-Active modules (deployed, audited, tested) are listed in `config/devops/nexus-devops.json` `activeModules`; add a module there when its phase starts. Modules that need the full org shape (OmniStudio, Experience Cloud, CRM Analytics, Multi-Framework) go in `fullProfileModules`: the static gates audit them, but they deploy and test only with `--profile full` (`setup-scratch-headless.sh`, `run-apex-tests.sh`, `drift-detect.js`), not in CI Gate 3. Later-phase scaffolding inside an active module that does not deploy yet is listed in `.forceignore`; remove those entries as each phase is implemented.
+Active modules (deployed, audited, tested) are listed in `config/devops/nexus-devops.json` `activeModules`; add a module there when its phase starts. Modules that need another org shape go in `<profile>ProfileModules`: `fullProfileModules` (OmniStudio, Experience Cloud, CRM Analytics, Multi-Framework) and `agentforceProfileModules` (HXL widgets, Agentforce, MCP). The static gates audit them, but they deploy and test only with `--profile full|agentforce` (`setup-scratch-headless.sh`, `run-apex-tests.sh`, `drift-detect.js`), not in CI Gate 3.
 
 ### 1.1 Quality Gates (run before every commit / PR)
 
@@ -102,7 +102,7 @@ modules/
 
 ## 3. Invocable Action & Headless Fabric Standards
 
-All `@InvocableMethod` actions exposed to Flows, Agentforce, or MCP must implement the uniform typed result envelope:
+All `@InvocableMethod` actions exposed to Flows, Agentforce, or MCP must implement the uniform typed result envelope (actions rendered by HXL or exposed as hosted MCP tools add `global` and a top-level payload class, section 5):
 
 ```apex
 public with sharing class ActionName {
@@ -174,11 +174,28 @@ public with sharing class ActionName {
 
 ## 5. Agentforce, MCP & HXL UI Contracts
 
-- Adhere strictly to the 4-part metadata contract:
-  1. CLT Payload (`<action>OutputValues/schema.json`)
-  2. CLT Result Wrapper (`<action>Result/schema.json`)
-  3. CLT Renderer (`<action>Result/renderer.json`)
-  4. HXL UiWidgetBundle (`composition.json` + `schema.json`)
-  5. McpServerDefinition (`.mcpServerDefinition-meta.xml`):
-     - Tools point to the Apex class.
-     - Resources point to `ui://widget/lightningType/c__<ResultWrapperCLT>`.
+Reference implementation: Demo App 9 (`modules/60-hxl-widgets`, `modules/70-agentforce-mcp`), ADR 0007. HXL is beta: the
+metadata deploys at API 67.0+ (`deployApiVersions`) into orgs with `UiWidgetSettings.hxlEnabled`.
+
+- **Actions** follow the result envelope (section 3), with two additions for HXL and hosted MCP: the action class,
+  its `Request` / `Result` and the `@InvocableMethod` are `global`, and the payload is a separate top-level `global`
+  class with `@JsonAccess(serializable='always' deserializable='always')` and `@AuraEnabled` fields (Custom Lightning
+  Types reference only such classes). Business logic stays in the `*Service`.
+- **The contract** (checked by `npm run validate:clt`):
+  1. HXL widget `uiWidgets/<widget>/`: `<widget>.uiwidget-meta.xml` (`widgetType` JSON), `<widget>.json` (composition:
+     `lightning__agentforceWidget` rooted at `tile/widget`, catalogued `tile/*` components, `action/sendMessage` or
+     `action/openLink`) and `schema.json` (`properties.attributes.properties`; list attributes declare `items`).
+  2. Agentforce CLT `lightningTypes/<action>Response/`: `schema.json` = `@apexClassType/c__<Payload>`, `renderer.json`
+     maps widget attributes to `{!$attrs.<field>}`.
+  3. MCP payload CLT `lightningTypes/<action>OutputValues/schema.json`: the action's output variables, tagged `mcp`,
+     `unevaluatedProperties: false`, no renderer.
+  4. MCP result wrapper CLT `lightningTypes/<action>Result/`: `actionName`, `isSuccess`, `outputValues`
+     (`c__<action>OutputValues`); its `renderer.json` maps `{!$attrs.outputValues.payload.<field>}`.
+  5. `mcpServerDefinitions/<Server>.mcpServerDefinition-meta.xml`: each tool's `apiDefinition` is `API_CATALOG` /
+     `aa:apex-<Class>` / operation `<Class>`; `resources` point to `ui://widget/lightningType/c__<action>Result` and
+     the tool names it in `uiResource`.
+- **Agents** are Agent Script source (`aiAuthoringBundles/<Agent>/<Agent>.agent`, employee agent:
+  `agent_type: "AgentforceEmployeeAgent"`). Actions target `apex://<Class>`; an output rendered as a widget declares
+  `complex_data_type_name: "c__<action>Response"` with `is_displayable: True`. Validate with
+  `sf agent validate authoring-bundle`; the setup script publishes and activates the agent and activates the MCP server
+  (org data, not metadata). Do not commit the generated `AiAgentDefinition*` / `Bot*` metadata.

@@ -2,11 +2,15 @@
 #
 # Provisions a Nexus Core scratch org end to end. Profiles (config/devops/nexus-devops.json):
 #   headless (default, CI): Phases 1-4 on config/project-scratch-def-headless.json
-#   full: adds fullProfileModules (Phase 5+ OmniStudio, ...) on config/project-scratch-def-full.json
+#   full: adds fullProfileModules (Phase 5-7: OmniStudio, Experience Cloud, CRM Analytics, React) on
+#         config/project-scratch-def-full.json
+#   agentforce: adds agentforceProfileModules (Phase 8: HXL widgets, Agentforce, MCP) on
+#         config/project-scratch-def-agentforce.json; needs a Dev Hub entitled to Agentforce scratch orgs (DevHubAI)
 #   create org -> install Nebula Logger -> deploy modules -> permissions -> persona users -> seed data -> tests
 #
 # Usage: scripts/org-init/setup-scratch-headless.sh [--alias nexus-dev] [--dev-hub DevHubGS] [--days 7]
-#                                                   [--profile headless|full] [--skip-create] [--skip-tests]
+#                                                   [--profile headless|full|agentforce] [--skip-create]
+#                                                   [--skip-tests]
 #
 # Scratch Developer Edition orgs include only 2 Salesforce licenses, so the admin user doubles as the
 # Sales Representative and Service Agent personas, and one extra "Sales Manager" user is created to
@@ -29,7 +33,7 @@ while [[ $# -gt 0 ]]; do
         --skip-create) SKIP_CREATE=true; shift ;;
         --skip-tests) SKIP_TESTS=true; shift ;;
         --profile) PROFILE="$2"; shift 2 ;;
-        -h|--help) sed -n '2,12p' "$0"; exit 0 ;;
+        -h|--help) sed -n '2,16p' "$0"; exit 0 ;;
         *) echo "Unknown option: $1" >&2; exit 1 ;;
     esac
 done
@@ -73,8 +77,8 @@ fi
 
 # Active modules come from config/devops/nexus-devops.json (shared with CI and the audit gates).
 mapfile -t MODULES < <(jq -r '.activeModules[]' config/devops/nexus-devops.json)
-FULL_MODULES=()
-[[ "$PROFILE" == "full" ]] && mapfile -t FULL_MODULES < <(jq -r '(.fullProfileModules // [])[]' config/devops/nexus-devops.json)
+# Profile modules (fullProfileModules, agentforceProfileModules) deploy after them.
+mapfile -t PROFILE_MODULES < <(jq -r --arg p "$PROFILE" '(.[$p + "ProfileModules"] // [])[]' config/devops/nexus-devops.json)
 DEPLOY_ARGS=()
 for module in "${MODULES[@]}"; do DEPLOY_ARGS+=(-d "$module"); done
 # A Case assignment rule cannot reference a queue created in the same deployment, so queues (and the
@@ -98,7 +102,7 @@ fi
 sf_json project deploy start -o "$ALIAS" "${DEPLOY_ARGS[@]}" --wait 30 \
     | jq -r '"    \(.result.numberComponentsDeployed) components deployed"'
 
-# Full-profile modules deploy after the active modules, in stages: OmniStudio validates references at deploy
+# Profile modules deploy after the active modules, in stages: OmniStudio validates references at deploy
 # time, so a Data Mapper cannot be created with the fields it maps, nor an Integration Procedure with the Data
 # Mapper or Apex class it calls. Each stage is activated before the next (deployed components can arrive
 # inactive; activation through the data API matches the designers' Activate button).
@@ -125,19 +129,19 @@ activate_omnistudio() {
         done
     done
 }
-if [[ ${#FULL_MODULES[@]} -gt 0 ]]; then
+if [[ ${#PROFILE_MODULES[@]} -gt 0 ]]; then
     # Deploy-time string replacements (sfdx-project.json "replacements"): org-specific values in site metadata.
     export NEXUS_SITE_ADMIN NEXUS_SITE_EMAIL
     NEXUS_SITE_ADMIN=$(sf_json org display -o "$ALIAS" | jq -r '.result.username')
     NEXUS_SITE_EMAIL=$(sf_json data query -o "$ALIAS" -q "SELECT Email FROM User WHERE Username = '$NEXUS_SITE_ADMIN'" \
         | jq -r '.result.records[0].Email')
 fi
-if [[ ${#FULL_MODULES[@]} -gt 0 ]] && find "${FULL_MODULES[@]}" -path '*/uiBundles/*/package.json' -not -path '*/node_modules/*' | grep -q .; then
+if [[ ${#PROFILE_MODULES[@]} -gt 0 ]] && find "${PROFILE_MODULES[@]}" -path '*/uiBundles/*/package.json' -not -path '*/node_modules/*' | grep -q .; then
     step "Building UI bundles (Multi-Framework)"
     scripts/devops/build-ui-bundles.sh --skip-tests | sed 's/^/    /'
 fi
-for module in "${FULL_MODULES[@]}"; do
-    step "Deploying $module (full profile)"
+for module in "${PROFILE_MODULES[@]}"; do
+    step "Deploying $module ($PROFILE profile)"
     # Metadata newer than sourceApiVersion (e.g. UIBundle) deploys from a manifest generated at that version.
     MODULE_API=$(jq -r --arg m "$module" '.deployApiVersions[$m] // empty' config/devops/nexus-devops.json)
     STAGES=()
@@ -181,6 +185,7 @@ ADMIN_ID=$(sf_json org display user -o "$ALIAS" | jq -r '.result.id')
 PERMSETS=(PS_Nexus_Admin PS_Sales_Admin LoggerAdmin PS_CapEx_Submitter PS_CapEx_Admin)
 [[ "$PROFILE" == "full" ]] && PERMSETS+=(PS_Customer360_User PS_Portal_Content_Author PS_Channel_Manager \
     PS_Asset_Explorer_User EinsteinAnalyticsPlusAdmin)
+[[ "$PROFILE" == "agentforce" ]] && PERMSETS+=(PS_Hotel_Concierge_Guest)
 for permset in "${PERMSETS[@]}"; do
     if [[ -z "$(query_id "SELECT Id FROM PermissionSetAssignment WHERE AssigneeId = '$ADMIN_ID' AND PermissionSet.Name = '$permset'")" ]]; then
         sf_json org assign permset -o "$ALIAS" -n "$permset" >/dev/null
@@ -265,6 +270,51 @@ if [[ "$PROFILE" == "full" ]]; then
         | jq -r '.result.logs' | grep -oE 'USER_DEBUG\|[^|]*\|DEBUG\|.*' | cut -d'|' -f4 | sed 's/^/    Jobs: /'
 fi
 
+if [[ "$PROFILE" == "agentforce" ]]; then
+    sf_json apex run -o "$ALIAS" -f scripts/org-init/seed-concierge.apex \
+        | jq -r '.result.logs' | grep -oE 'USER_DEBUG\|[^|]*\|DEBUG\|.*' | cut -d'|' -f4 | sed 's/^/    Concierge: /'
+
+    # Agent Script is the source (aiAuthoringBundles); publishing compiles it into the agent definition (ADR 0007).
+    # An existing agent is left as is: re-publishing creates a new version (see docs/known-issues.md, KI-042).
+    # `sf agent publish` only searches the default package directory, so it runs in a temporary project holding the
+    # bundle (its actions' Apex is already deployed).
+    while IFS= read -r bundle_dir; do
+        bundle=$(basename "$bundle_dir")
+        step "Publishing and activating agent '$bundle'"
+        if [[ -n "$(query_id "SELECT Id FROM BotDefinition WHERE DeveloperName = '$bundle'")" ]]; then
+            echo "    Agent already published - skipped"
+        else
+            PUBLISH_DIR=$(mktemp -d)
+            mkdir -p "$PUBLISH_DIR/force-app/aiAuthoringBundles"
+            cp -r "$bundle_dir" "$PUBLISH_DIR/force-app/aiAuthoringBundles/"
+            jq -n --arg v "$(jq -r '.sourceApiVersion' sfdx-project.json)" \
+                '{packageDirectories: [{path: "force-app", default: true}], sourceApiVersion: $v}' \
+                > "$PUBLISH_DIR/sfdx-project.json"
+            (cd "$PUBLISH_DIR" && sf_json agent publish authoring-bundle -o "$ALIAS" -n "$bundle" --skip-retrieve >/dev/null)
+            echo "    Published"
+        fi
+        sf_json agent activate -o "$ALIAS" -n "$bundle" | jq -r '"    Active version \(.result.version)"'
+    done < <(find "${PROFILE_MODULES[@]}" -type d -path '*/aiAuthoringBundles/*' -prune)
+
+    # Hosted MCP servers deploy inactive; activation is an McpServerAccess record (Setup > MCP Servers > Activate).
+    while IFS= read -r server; do
+        step "Activating MCP server '$server'"
+        SERVER_ID=$(sf_json data query -o "$ALIAS" --use-tooling-api \
+            -q "SELECT Id FROM McpServerDefinition WHERE DeveloperName = '$server'" | jq -r '.result.records[0].Id')
+        ACCESS=$(sf_json data query -o "$ALIAS" --use-tooling-api \
+            -q "SELECT Id, Active FROM McpServerAccess WHERE McpServerId = '$SERVER_ID'" | jq -c '.result.records[0] // empty')
+        if [[ -z "$ACCESS" ]]; then
+            sf_json data create record -o "$ALIAS" --use-tooling-api -s McpServerAccess \
+                -v "DeveloperName=$server MasterLabel=$server Active=true McpServerId=$SERVER_ID" >/dev/null
+        elif [[ "$(jq -r '.Active' <<<"$ACCESS")" != "true" ]]; then
+            sf_json data update record -o "$ALIAS" --use-tooling-api -s McpServerAccess -i "$(jq -r '.Id' <<<"$ACCESS")" \
+                -v "Active=true" >/dev/null
+        fi
+        sf api request rest "/services/data/v67.0/api-catalog/mcp-servers/$SERVER_ID" -o "$ALIAS" 2>/dev/null \
+            | jq -r '"    Active=\(.active): \(.serverUrl)"' || echo "    Active"
+    done < <(find "${PROFILE_MODULES[@]}" -name '*.mcpServerDefinition-meta.xml' -exec basename {} .mcpServerDefinition-meta.xml \;)
+fi
+
 if [[ "$PROFILE" == "full" ]]; then
     # Partner Central persona (after seeding: the partner account comes from data/): the Sales Manager is the channel manager who owns the partner account; its
     # contact Tom Alvarez becomes a partner user (custom profile: standard external profiles cannot create users).
@@ -325,3 +375,5 @@ echo "    Operations:    sf org open -o $ALIAS -p lightning/app/c__Nexus_Operati
 [[ "$PROFILE" == "full" ]] && echo "    Analytics:     sf org open -o $ALIAS -p lightning/n/standard-AnalyticsStudio (app Nexus Executive Analytics)"
 [[ "$PROFILE" == "full" ]] && echo "    Explorer:      App Launcher > Nexus Asset Explorer (React UI bundle)"
 [[ "$PROFILE" == "full" ]] && echo "    Portals:       sf org open -o $ALIAS -p lightning/app/c__Nexus_Portals (sites: Setup > Digital Experiences)"
+[[ "$PROFILE" == "agentforce" ]] && echo "    Concierge:     Agentforce panel (Lightning) > Nexus Hotel Concierge; MCP: Setup > MCP Servers > NexusHotelConcierge"
+exit 0

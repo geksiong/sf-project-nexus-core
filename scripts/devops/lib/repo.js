@@ -35,8 +35,9 @@ const TYPE_DIRS = new Set([
     'omniScripts',
     'omniUiCard',
     'omniDataTransforms',
-    'ui-widget-bundles',
-    'custom-lightning-types',
+    'uiWidgets',
+    'lightningTypes',
+    'aiAuthoringBundles',
     'mcpServerDefinitions',
     'profiles',
     'sharingRules',
@@ -60,13 +61,19 @@ function loadConfig() {
 }
 
 /**
- * Modules for a profile: "headless" (CI scratch org) = activeModules; "full" adds fullProfileModules
- * (OmniStudio, Experience Cloud, ...). Static gates audit every module in either profile.
+ * Modules for a profile: "headless" (CI scratch org) = activeModules; any other profile adds its
+ * "<profile>ProfileModules" list ("full": OmniStudio, Experience Cloud, ...; "agentforce": HXL, MCP).
  */
 function profileModules(config, profile = 'headless') {
-    return profile === 'full'
-        ? [...config.activeModules, ...(config.fullProfileModules || [])]
-        : [...config.activeModules];
+    return [...config.activeModules, ...(config[`${profile}ProfileModules`] || [])];
+}
+
+/** Every module in any profile: the static gates audit them all. */
+function allModules(config) {
+    const extra = Object.entries(config)
+        .filter(([key]) => key.endsWith('ProfileModules'))
+        .flatMap(([, modules]) => modules);
+    return [...new Set([...config.activeModules, ...extra])];
 }
 
 function loadProject() {
@@ -188,8 +195,8 @@ function buildSymbolIndex(modules, config) {
                     }
                     break;
                 case 'lwc':
-                case 'ui-widget-bundles':
-                case 'custom-lightning-types':
+                case 'uiWidgets':
+                case 'lightningTypes':
                     add(parts[1], mod.name, parts[0]);
                     break;
                 case 'flows':
@@ -254,8 +261,14 @@ function extractReferences(relativePath) {
             addToken(value);
             value.split(/[.#/]/).forEach(addToken);
         }
-    } else if (relativePath.endsWith('.json')) {
+    } else if (relativePath.endsWith('.agent')) {
+        // Agent Script: action targets (apex://Class, flow://Flow) and output types (c__Type, @apexClassType/c__Class).
+        for (const m of text.matchAll(/(?:apex|flow):\/\/([A-Za-z0-9_]+)/g)) addToken(m[1]);
         for (const m of text.matchAll(/c__([A-Za-z0-9_]+)/g)) addToken(m[1]);
+    } else if (relativePath.endsWith('.json')) {
+        // Custom Lightning Types reference types and Apex classes as c__Name, widgets as @widget/c/name.
+        for (const m of text.matchAll(/c__([A-Za-z0-9_]+)/g)) addToken(m[1]);
+        for (const m of text.matchAll(/@widget\/c\/([A-Za-z0-9_]+)/g)) addToken(m[1]);
         for (const m of text.matchAll(/"\$ref"\s*:\s*"\.\.\/([A-Za-z0-9_]+)\//g)) addToken(m[1]);
         // Experience Cloud pages: custom components ("definition" : "c:name") and flows ("flowName" : "Name").
         for (const m of text.matchAll(/"(?:definition|componentName)"\s*:\s*"c:([A-Za-z0-9_]+)"/g)) addToken(m[1]);
@@ -269,6 +282,7 @@ module.exports = {
     TYPE_DIRS,
     loadConfig,
     profileModules,
+    allModules,
     loadProject,
     loadModules,
     loadForceIgnore,

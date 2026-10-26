@@ -29,7 +29,7 @@ const { summary, tests = [], coverage } = run.result;
 
 const nexusUnits = new Set(
     repo
-        .profileModules(config, 'full')
+        .allModules(config)
         .flatMap((dir) => repo.listFiles(dir))
         .filter((f) => /\.(cls|trigger)$/.test(f))
         .map((f) => path.basename(f).replace(/\.(cls|trigger)$/, ''))
