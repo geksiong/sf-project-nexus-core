@@ -187,15 +187,15 @@ Report anything that differs; fixes go in a follow-up.
 Full profile (`setup-scratch-headless.sh --profile full`), [ADR 0004](docs/adr/0004-dual-experience-cloud-runtimes.md).
 Back office: **Nexus Portals** app. Sites: Setup → Digital Experiences → All Sites.
 
-| Component (`modules/30-experience-cloud`)                                                                      | Purpose                                                                                                        |
-| -------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
-| **Nexus Hospitality** (LWR, `DigitalExperienceBundle`, public access), `/hospitality`                          | Public portal; home page shows `hospitalityArticles` (Light DOM LWC)                                           |
-| `Portal_Article__c` + **Portal Content Approval** (author's manager)                                           | Draft → In Review → Published; only Published articles are visible to the site guest user (guest sharing rule) |
-| `PortalContentController` → `PortalContentService` → `PortalArticlesSelector` (user mode)                      | Guest reads under the guest user's own sharing and field access; no `without sharing`                          |
-| **Nexus Partner Central** (Aura, `ExperienceBundle`, Partner Central template, PRM), `/partners`               | Partner portal; home page sidebar runs the **Partner Deal Registration** flow                                  |
-| `Deal_Registration__c` + **Deal Registration Approval** (channel manager = partner account owner)              | Private OWD; partner role hierarchy; approval creates the customer account and opportunity                     |
-| `DealRegistrationService`, `DealRegistrationFactsSelector`, `SubmitDealRegistrationAction`                     | Routing, channel conflict rule (one open registration per customer across partners), conversion                |
-| `PS_Portal_Content_Author`, `PS_Partner_Deal_Registration`, `PS_Channel_Manager`, `Nexus Partner User` profile | Access model                                                                                                   |
+| Component (`modules/30-experience-cloud`)                                                                      | Purpose                                                                                                                                           |
+| -------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Nexus Hospitality** (LWR, `DigitalExperienceBundle`, public access), `/hospitality`                          | Public portal; home page shows `hospitalityArticles` (Light DOM LWC)                                                                              |
+| `Portal_Article__c` + **Portal Content Approval** (author's manager)                                           | Draft → In Review → Published; only Published articles are visible to the site guest user (guest sharing rule)                                    |
+| `PortalContentController` → `PortalContentService` → `PortalArticlesSelector` (user mode)                      | Guest reads under the guest user's own sharing and field access; no `without sharing`                                                             |
+| **Nexus Partner Central** (Aura, `ExperienceBundle`, Partner Central template, PRM), `/partners`               | Partner portal; home page sidebar runs the **Partner Deal Registration** flow                                                                     |
+| `Deal_Registration__c` + **Deal Registration Approval** (channel manager = partner account owner)              | Private OWD; partner role hierarchy; approval creates the customer account and opportunity; a recall marks it Withdrawn and releases the customer |
+| `DealRegistrationService`, `DealRegistrationFactsSelector`, `SubmitDealRegistrationAction`                     | Routing, channel conflict rule (one open registration per customer across partners), conversion                                                   |
+| `PS_Portal_Content_Author`, `PS_Partner_Deal_Registration`, `PS_Channel_Manager`, `Nexus Partner User` profile | Access model                                                                                                                                      |
 
 Personas: the admin authors content and the Sales Manager approves it; the Sales Manager is also the channel manager
 who owns **Nexus Global Channel Partners**, whose contact **Tom Alvarez** is the partner user (Partner Community

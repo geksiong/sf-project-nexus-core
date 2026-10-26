@@ -76,7 +76,7 @@ public class PartnerTestFixtures {
     }
 
     public static Account partner(String name) {
-        return [SELECT Id, OwnerId FROM Account WHERE Name = :name];
+        return [SELECT Id, OwnerId FROM Account WHERE Name = :name AND IsPartner = TRUE];
     }
 
     public static SubmitDealRegistrationAction.Request request(String company, Decimal amount) {

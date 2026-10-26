@@ -64,9 +64,12 @@ function main() {
         const isTest = /@IsTest/i.test(source);
         if (isTest) continue;
         // Entry points are annotated methods or REST classes; @AuraEnabled on DTO properties does not count.
+        // String literals are blanked first so parentheses inside annotation text (descriptions) cannot end
+        // the annotation's argument list early.
+        const code = source.replace(/'(?:\\.|[^'\\])*'/g, "''");
         const isEntryPoint =
-            /@(AuraEnabled|InvocableMethod)\b(\([^)]*\))?\s+(public|global)\s+static\b/i.test(source) ||
-            /@RestResource\b/i.test(source);
+            /@(AuraEnabled|InvocableMethod)\b(\([^)]*\))?\s+(public|global)\s+static\b/i.test(code) ||
+            /@RestResource\b/i.test(code);
         if (isEntryPoint && !granted('apexClass', name)) {
             report('missing-class-access', name, 'Apex entry point not granted in any permission set classAccesses');
         }

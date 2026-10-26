@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
     <fullName>Status__c</fullName>
-    <description>Submitted (awaiting the channel manager), Approved (opportunity created) or Rejected. Set by the Deal Registration Approval process.</description>
+    <description>Submitted (awaiting the channel manager), Approved (opportunity created), Rejected, or Withdrawn (recalled by the partner). Set by the Deal Registration Approval process; only Submitted and Approved reserve the customer.</description>
     <label>Status</label>
     <required>false</required>
     <trackHistory>false</trackHistory>
@@ -24,6 +24,11 @@
                 <fullName>Rejected</fullName>
                 <default>false</default>
                 <label>Rejected</label>
+            </value>
+            <value>
+                <fullName>Withdrawn</fullName>
+                <default>false</default>
+                <label>Withdrawn</label>
             </value>
         </valueSetDefinition>
     </valueSet>

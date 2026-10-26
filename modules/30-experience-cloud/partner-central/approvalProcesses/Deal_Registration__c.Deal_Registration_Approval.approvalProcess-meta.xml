@@ -54,7 +54,7 @@
     <processOrder>1</processOrder>
     <recallActions>
         <action>
-            <name>Deal_Registration_Submitted</name>
+            <name>Deal_Registration_Withdrawn</name>
             <type>FieldUpdate</type>
         </action>
     </recallActions>

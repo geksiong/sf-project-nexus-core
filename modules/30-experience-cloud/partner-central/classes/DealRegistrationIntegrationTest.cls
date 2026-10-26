@@ -87,6 +87,47 @@ private class DealRegistrationIntegrationTest {
         Assert.isFalse(conflict.errorMessage.contains('Partner A'), 'The other partner is not disclosed');
     }
 
+    /** @description A recalled registration is Withdrawn and stops reserving the customer. */
+    @IsTest
+    static void recalledRegistrationsReleaseTheCustomer() {
+        Id registrationId = submitAs(PartnerTestFixtures.PARTNER_A_USER, 'Initech', 55000).payload.dealRegistrationId;
+        Id workItemId = [SELECT Id FROM ProcessInstanceWorkitem WHERE ProcessInstance.TargetObjectId = :registrationId]
+        .Id;
+
+        System.runAs(PartnerTestFixtures.getUser(PartnerTestFixtures.PARTNER_A_USER)) {
+            Approval.ProcessWorkitemRequest recall = new Approval.ProcessWorkitemRequest();
+            recall.setWorkitemId(workItemId);
+            recall.setAction('Removed');
+            Approval.process(recall);
+        }
+
+        Assert.areEqual(DealRegistrationService.STATUS_WITHDRAWN, reload(registrationId).Status__c);
+        SubmitDealRegistrationAction.Result other = submitAs(PartnerTestFixtures.PARTNER_B_USER, 'Initech', 9000);
+        Assert.isTrue(other.isSuccess, 'A withdrawn registration no longer blocks other partners: ' + other);
+    }
+
+    @IsTest
+    static void conversionNeverAttachesTheOpportunityToAPartnerAccount() {
+        Id registrationId = submitAs(PartnerTestFixtures.PARTNER_A_USER, 'Partner B Integrators', 7000)
+            .payload.dealRegistrationId;
+        Id workItemId = [SELECT Id FROM ProcessInstanceWorkitem WHERE ProcessInstance.TargetObjectId = :registrationId]
+        .Id;
+        System.runAs(PartnerTestFixtures.getUser(PartnerTestFixtures.CHANNEL_MANAGER)) {
+            Approval.ProcessWorkitemRequest approve = new Approval.ProcessWorkitemRequest();
+            approve.setWorkitemId(workItemId);
+            approve.setAction('Approve');
+            Approval.process(approve);
+        }
+
+        Opportunity opp = [
+            SELECT AccountId, Account.IsPartner
+            FROM Opportunity
+            WHERE Id = :reload(registrationId).Opportunity__c
+        ];
+        Assert.areNotEqual(PartnerTestFixtures.partner('Partner B Integrators').Id, opp.AccountId);
+        Assert.isFalse(opp.Account.IsPartner, 'A new customer account is created instead');
+    }
+
     /** @description Private OWD: partner managers see their team's registrations; other partners see nothing. */
     @IsTest
     static void partnerRoleHierarchyControlsVisibility() {
