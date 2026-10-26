@@ -8,6 +8,10 @@ public with sharing class DealRegistrationTriggerHandler extends TriggerHandler 
     }
 
     protected override void beforeUpdate(List<SObject> updatedRecords, Map<Id, SObject> oldRecordMap) {
+        DealRegistrationService.freezeApproved(
+            (List<Deal_Registration__c>) updatedRecords,
+            (Map<Id, Deal_Registration__c>) oldRecordMap
+        );
         DealRegistrationService.convertApproved(
             (List<Deal_Registration__c>) updatedRecords,
             (Map<Id, Deal_Registration__c>) oldRecordMap

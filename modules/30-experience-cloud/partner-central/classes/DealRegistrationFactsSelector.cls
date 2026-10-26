@@ -51,8 +51,10 @@ public virtual without sharing class DealRegistrationFactsSelector {
     }
 
     /**
-     * @description Open (Submitted or Approved) registrations by customer, as normalised company name to the
-     * registering partner account Id, excluding the given registrations.
+     * @description Registrations that reserve their customer, as normalised company name to the registering
+     * partner account Id, excluding the given registrations: Submitted, or Approved with a live reservation
+     * (not past Expires_On__c and the opportunity not closed). Evaluated live, so a lapsed reservation releases
+     * the customer immediately, before DealRegistrationExpiryJob updates its status.
      */
     public virtual Map<String, Id> selectOpenRegistrationPartners(Set<String> companyKeys, Set<Id> excludeIds) {
         Map<String, Id> partners = new Map<String, Id>();
@@ -65,13 +67,35 @@ public virtual without sharing class DealRegistrationFactsSelector {
             FROM Deal_Registration__c
             WHERE
                 Customer_Company__c IN :companyKeys
-                AND Status__c IN :DealRegistrationService.OPEN_STATUSES
                 AND Id NOT IN :excluded
+                AND (Status__c = :DealRegistrationService.STATUS_SUBMITTED
+                OR (Status__c = :DealRegistrationService.STATUS_APPROVED
+                AND (Expires_On__c = NULL
+                OR Expires_On__c >= TODAY)
+                AND (Opportunity__c = NULL
+                OR Opportunity__r.IsClosed = FALSE)))
             WITH SYSTEM_MODE
         ]) {
             partners.put(DealRegistrationService.companyKey(reg.Customer_Company__c), reg.Partner_Account__c);
         }
         return partners;
+    }
+
+    /**
+     * @description Approved registrations whose reservation has lapsed (past Expires_On__c, or opportunity closed),
+     * for DealRegistrationExpiryJob (system automation: minimal records, never returned to a user).
+     */
+    public virtual List<Deal_Registration__c> selectLapsedReservations(Integer maxRecords) {
+        return [
+            SELECT Id, Expires_On__c, Opportunity__r.IsClosed
+            FROM Deal_Registration__c
+            WHERE
+                Status__c = :DealRegistrationService.STATUS_APPROVED
+                AND (Expires_On__c < TODAY
+                OR Opportunity__r.IsClosed = TRUE)
+            WITH SYSTEM_MODE
+            LIMIT :maxRecords
+        ];
     }
 
     /** @description Existing customer (non-partner) accounts by normalised name, to reuse on conversion. */

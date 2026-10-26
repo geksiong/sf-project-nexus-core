@@ -73,6 +73,84 @@ private class DealRegistrationIntegrationTest {
         Assert.areEqual(DealRegistrationService.LEAD_SOURCE, opp.LeadSource);
         Assert.areEqual('Initech', opp.Account.Name);
         Assert.areEqual(manager.Id, opp.Account.OwnerId, 'New customer account is owned by the channel manager');
+        Assert.areEqual(
+            Date.today().addDays(DealRegistrationService.RESERVATION_DAYS),
+            [SELECT Expires_On__c FROM Deal_Registration__c WHERE Id = :registrationId].Expires_On__c
+        );
+
+        // KI-035: the registering partner can follow the opportunity; other partners cannot.
+        System.runAs(PartnerTestFixtures.getUser(PartnerTestFixtures.PARTNER_A_USER)) {
+            Assert.areEqual(
+                1,
+                [SELECT COUNT() FROM Opportunity WHERE Id = :saved.Opportunity__c],
+                'Registering partner'
+            );
+        }
+        System.runAs(PartnerTestFixtures.getUser(PartnerTestFixtures.PARTNER_B_USER)) {
+            Assert.areEqual(0, [SELECT COUNT() FROM Opportunity WHERE Id = :saved.Opportunity__c], 'Other partner');
+        }
+    }
+
+    private static Id approve(Id registrationId) {
+        Id workItemId = [SELECT Id FROM ProcessInstanceWorkitem WHERE ProcessInstance.TargetObjectId = :registrationId]
+        .Id;
+        System.runAs(PartnerTestFixtures.getUser(PartnerTestFixtures.CHANNEL_MANAGER)) {
+            Approval.ProcessWorkitemRequest decision = new Approval.ProcessWorkitemRequest();
+            decision.setWorkitemId(workItemId);
+            decision.setAction('Approve');
+            Approval.process(decision);
+        }
+        return reload(registrationId).Opportunity__c;
+    }
+
+    /** @description KI-035: a reservation ends at Expires_On__c or when its opportunity closes. */
+    @IsTest
+    static void reservationsLapseAfterExpiryOrWhenTheOpportunityCloses() {
+        Id expiring = submitAs(PartnerTestFixtures.PARTNER_A_USER, 'Initech', 1000).payload.dealRegistrationId;
+        approve(expiring);
+        Id closing = submitAs(PartnerTestFixtures.PARTNER_A_USER, 'Globex', 2000).payload.dealRegistrationId;
+        Id closingOpportunity = approve(closing);
+        Assert.areEqual(
+            DealRegistrationService.ERROR_CHANNEL_CONFLICT,
+            submitAs(PartnerTestFixtures.PARTNER_B_USER, 'Initech', 500).errorCode,
+            'Approved and live: reserved'
+        );
+
+        update new Deal_Registration__c(Id = expiring, Expires_On__c = Date.today().addDays(-1));
+        update new Opportunity(Id = closingOpportunity, StageName = 'Closed Lost', Loss_Reason__c = 'Price');
+
+        Assert.isTrue(submitAs(PartnerTestFixtures.PARTNER_B_USER, 'Initech', 500).isSuccess, 'Expired: released');
+        Assert.isTrue(submitAs(PartnerTestFixtures.PARTNER_B_USER, 'Globex', 500).isSuccess, 'Closed: released');
+
+        Assert.areEqual(2, DealRegistrationService.releaseLapsedReservations());
+        Assert.areEqual(DealRegistrationService.STATUS_EXPIRED, reload(expiring).Status__c);
+        Assert.areEqual(DealRegistrationService.STATUS_CLOSED, reload(closing).Status__c);
+    }
+
+    @IsTest
+    static void approvedRegistrationsRejectChangesEvenFromAdministrators() {
+        Id registrationId = submitAs(PartnerTestFixtures.PARTNER_A_USER, 'Initech', 1000).payload.dealRegistrationId;
+        approve(registrationId);
+        try {
+            update new Deal_Registration__c(Id = registrationId, Estimated_Amount__c = 5000000);
+            Assert.fail('Approved registrations are frozen');
+        } catch (DmlException ex) {
+            Assert.isTrue(ex.getMessage().contains('cannot be changed'), ex.getMessage());
+        }
+    }
+
+    @IsTest
+    static void expiryJobRunsTheRelease() {
+        Id registrationId = submitAs(PartnerTestFixtures.PARTNER_A_USER, 'Initech', 1000).payload.dealRegistrationId;
+        approve(registrationId);
+        update new Deal_Registration__c(Id = registrationId, Expires_On__c = Date.today().addDays(-1));
+
+        Test.startTest();
+        System.schedule('Test expiry', DealRegistrationExpiryJob.CRON_DAILY, new DealRegistrationExpiryJob());
+        new DealRegistrationExpiryJob().execute(null);
+        Test.stopTest();
+
+        Assert.areEqual(DealRegistrationService.STATUS_EXPIRED, reload(registrationId).Status__c);
     }
 
     @IsTest

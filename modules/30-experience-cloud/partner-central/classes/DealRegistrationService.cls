@@ -6,8 +6,14 @@
  *                                        one open registration per customer across all partners.
  *  submitForApproval    (after insert)   submits each registration to the Deal Registration Approval process
  *                                        (routed to Channel_Manager__c).
+ *  freezeApproved       (before update)  once approved (record locked), the customer, amount, dates, partner and
+ *                                        opportunity cannot change, not even by administrators.
  *  convertApproved      (before update)  on approval: reuses or creates the customer account and creates the
- *                                        opportunity (owned by the channel manager), linked in Opportunity__c.
+ *                                        opportunity (owned by the channel manager), linked in Opportunity__c,
+ *                                        shared read-only with the registering partner user; the customer is
+ *                                        reserved for RESERVATION_DAYS (Expires_On__c) or until the opportunity
+ *                                        closes, whichever comes first.
+ *  releaseLapsedReservations (daily job) marks lapsed reservations Expired / Closed (DealRegistrationExpiryJob).
  *  submitRegistrations  (invocable)      Partner_Deal_Registration flow / Agentforce: user-mode insert, so only
  *                                        users with PS_Partner_Deal_Registration can register.
  *
@@ -19,8 +25,10 @@ public with sharing class DealRegistrationService {
     public static final String STATUS_SUBMITTED = 'Submitted';
     public static final String STATUS_APPROVED = 'Approved';
     public static final String STATUS_WITHDRAWN = 'Withdrawn';
+    public static final String STATUS_EXPIRED = 'Expired';
+    public static final String STATUS_CLOSED = 'Closed';
+    public static final Integer RESERVATION_DAYS = 90;
     private static final Pattern EMAIL_FORMAT = Pattern.compile('^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$');
-    public static final Set<String> OPEN_STATUSES = new Set<String>{ STATUS_SUBMITTED, STATUS_APPROVED };
     public static final String CONFLICT_PREFIX = 'Channel conflict: ';
     public static final String LEAD_SOURCE = 'Partner Referral';
     public static final String OPPORTUNITY_STAGE = 'Prospecting';
@@ -125,6 +133,49 @@ public with sharing class DealRegistrationService {
         }
     }
 
+    public static void freezeApproved(List<Deal_Registration__c> registrations, Map<Id, Deal_Registration__c> oldMap) {
+        List<Schema.SObjectField> frozen = new List<Schema.SObjectField>{
+            Deal_Registration__c.Customer_Company__c,
+            Deal_Registration__c.Estimated_Amount__c,
+            Deal_Registration__c.Expected_Close_Date__c,
+            Deal_Registration__c.Product_Interest__c,
+            Deal_Registration__c.Partner_Account__c,
+            Deal_Registration__c.Channel_Manager__c,
+            Deal_Registration__c.Opportunity__c
+        };
+        for (Deal_Registration__c reg : registrations) {
+            Deal_Registration__c old = oldMap.get(reg.Id);
+            if (old.Status__c != STATUS_APPROVED) {
+                continue;
+            }
+            for (Schema.SObjectField field : frozen) {
+                if (reg.get(field) != old.get(field)) {
+                    reg.addError(
+                        'An approved deal registration cannot be changed (' + field.getDescribe().getLabel() + ').'
+                    );
+                    break;
+                }
+            }
+        }
+    }
+
+    /** @description Daily: lapsed reservations become Expired (date passed) or Closed (opportunity closed). */
+    public static Integer releaseLapsedReservations() {
+        List<Deal_Registration__c> updates = new List<Deal_Registration__c>();
+        for (Deal_Registration__c reg : DealRegistrationFactsSelector.newInstance().selectLapsedReservations(9000)) {
+            updates.add(
+                new Deal_Registration__c(
+                    Id = reg.Id,
+                    Status__c = reg.Opportunity__r?.IsClosed == true ? STATUS_CLOSED : STATUS_EXPIRED
+                )
+            );
+        }
+        if (!updates.isEmpty()) {
+            PartialDml.save(Database.update(updates, false, AccessLevel.SYSTEM_MODE), 'Deal registration expiry');
+        }
+        return updates.size();
+    }
+
     public static void convertApproved(List<Deal_Registration__c> registrations, Map<Id, Deal_Registration__c> oldMap) {
         List<Deal_Registration__c> approved = new List<Deal_Registration__c>();
         Set<String> companyKeys = new Set<String>();
@@ -181,16 +232,32 @@ public with sharing class DealRegistrationService {
                 )
             );
             converting.add(reg);
+            reg.Expires_On__c = Date.today().addDays(RESERVATION_DAYS);
         }
         List<Database.SaveResult> results = Database.insert(opportunities, false, AccessLevel.SYSTEM_MODE);
+        List<OpportunityShare> shares = new List<OpportunityShare>();
         for (Integer i = 0; i < results.size(); i++) {
             if (results[i].isSuccess()) {
                 converting[i].Opportunity__c = results[i].getId();
+                // The registering partner follows the deal (read only); their partner managers see it through
+                // the role hierarchy. A manual share is removed if the opportunity owner changes.
+                if (converting[i].OwnerId != converting[i].Channel_Manager__c) {
+                    shares.add(
+                        new OpportunityShare(
+                            OpportunityId = results[i].getId(),
+                            UserOrGroupId = converting[i].OwnerId,
+                            OpportunityAccessLevel = 'Read'
+                        )
+                    );
+                }
             } else {
                 // Fails the approval: the channel manager sees why and can retry.
                 converting[i]
                     .addError('The opportunity could not be created: ' + results[i].getErrors()[0].getMessage());
             }
+        }
+        if (!shares.isEmpty()) {
+            PartialDml.save(Database.insert(shares, false, AccessLevel.SYSTEM_MODE), 'Partner opportunity share');
         }
     }
 

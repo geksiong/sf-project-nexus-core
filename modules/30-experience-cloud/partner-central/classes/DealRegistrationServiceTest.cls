@@ -98,6 +98,35 @@ private class DealRegistrationServiceTest {
         Assert.isTrue(errors(unmanaged).contains('no active channel manager'), errors(unmanaged));
     }
 
+    /** @description KI-035: approved registrations are locked; only their status may move on. */
+    @IsTest
+    static void approvedRegistrationsAreFrozen() {
+        Deal_Registration__c approved = reg('Initech');
+        approved.Id = TestDataFactory.getFakeId(Deal_Registration__c.SObjectType);
+        approved.Partner_Account__c = PARTNER_A;
+        Deal_Registration__c raised = approved.clone(true);
+        raised.Estimated_Amount__c = 999999;
+        Deal_Registration__c expired = approved.clone(true);
+        expired.Status__c = DealRegistrationService.STATUS_EXPIRED;
+        Deal_Registration__c submitted = approved.clone(true);
+        submitted.Status__c = 'Submitted';
+        Deal_Registration__c submittedEdit = submitted.clone(true);
+        submittedEdit.Customer_Company__c = 'Initech Europe';
+
+        DealRegistrationService.freezeApproved(
+            new List<Deal_Registration__c>{ raised, expired },
+            new Map<Id, Deal_Registration__c>{ approved.Id => approved }
+        );
+        DealRegistrationService.freezeApproved(
+            new List<Deal_Registration__c>{ submittedEdit },
+            new Map<Id, Deal_Registration__c>{ submitted.Id => submitted }
+        );
+
+        Assert.isTrue(errors(raised).contains('cannot be changed (Estimated Amount)'), errors(raised));
+        Assert.isFalse(expired.hasErrors(), 'Status changes are allowed: ' + errors(expired));
+        Assert.isFalse(submittedEdit.hasErrors(), 'Only approved registrations are frozen');
+    }
+
     @IsTest
     static void invalidRequestsFailBeforeAnyDml() {
         List<SubmitDealRegistrationAction.Request> requests = new List<SubmitDealRegistrationAction.Request>();

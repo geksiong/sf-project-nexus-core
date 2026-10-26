@@ -3,11 +3,12 @@
  *  - Escalate Case flow / Agentforce / MCP: EscalateCaseAction sets Status = Escalated in user mode;
  *  - SLA violation: the entitlement process sets the SLA_Breached__c signal (system automation). The
  *    policy consumes it (stamps SLA_Violated_On__c, resets the signal), so every violation escalates;
- *  - Manual: an agent sets Status = Escalated on the record.
+ *  - Manual: an agent sets Status = Escalated on the record, including on a closed case (a deliberate
+ *    reopen), or a case is created with Status = Escalated (import, integration).
  *
- * Policy (before update): priority High, owner the Tier 2 queue (Omni-Channel routes it), timestamp,
- * and a default reason when none was given. Side effects (after update): a private case comment with
- * the reason, and case team provisioning (CaseTeamService).
+ * Policy (before insert / before update): priority High, owner the Tier 2 queue (Omni-Channel routes it),
+ * timestamp, and a default reason when none was given. Side effects (after insert / after update): a private
+ * case comment with the reason, and case team provisioning (CaseTeamService).
  */
 public with sharing class CaseEscalationService {
     public static final String STATUS_ESCALATED = 'Escalated';
@@ -35,21 +36,26 @@ public with sharing class CaseEscalationService {
     // Trigger entry points
     // ---------------------------------------------------------------------------------------------
 
-    /** @description True when this save moves the case into Escalated. */
+    /** @description True when this save moves the case into Escalated (insert: old is null). */
     public static Boolean isEscalation(Case c, Case old) {
-        return old != null && c.Status == STATUS_ESCALATED && old.Status != STATUS_ESCALATED;
+        return c.Status == STATUS_ESCALATED && (old == null || old.Status != STATUS_ESCALATED);
     }
 
-    /** @description Before update: converts SLA violations into escalations and applies the policy. */
+    /**
+     * @description Before insert (oldMap null) and before update: converts SLA violations into escalations
+     * and applies the policy.
+     */
     public static void applyEscalationPolicy(List<Case> cases, Map<Id, Case> oldMap) {
         List<Case> escalating = new List<Case>();
         for (Case c : cases) {
-            Case old = oldMap.get(c.Id);
+            Case old = oldMap == null ? null : oldMap.get(c.Id);
             Boolean reasonProvided =
-                String.isNotBlank(c.Escalation_Reason__c) && c.Escalation_Reason__c != old.Escalation_Reason__c;
+                String.isNotBlank(c.Escalation_Reason__c) &&
+                (old == null ||
+                c.Escalation_Reason__c != old.Escalation_Reason__c);
             // One-shot signal: consume and reset it, so the next violated milestone flips it again.
             // (Changing the in-use entitlement process to stamp a field instead would need a new version.)
-            Boolean violated = c.SLA_Breached__c && !old.SLA_Breached__c;
+            Boolean violated = old != null && c.SLA_Breached__c && !old.SLA_Breached__c;
             if (violated) {
                 c.SLA_Breached__c = false;
                 c.SLA_Violated_On__c = System.now();
@@ -85,11 +91,11 @@ public with sharing class CaseEscalationService {
         }
     }
 
-    /** @description After update: records each escalation's reason as a private case comment. */
+    /** @description After insert (oldMap null) and after update: records each escalation's reason as a private comment. */
     public static void recordEscalations(List<Case> cases, Map<Id, Case> oldMap) {
         List<CaseComment> comments = new List<CaseComment>();
         for (Case c : cases) {
-            if (isEscalation(c, oldMap.get(c.Id))) {
+            if (isEscalation(c, oldMap == null ? null : oldMap.get(c.Id))) {
                 comments.add(
                     new CaseComment(
                         ParentId = c.Id,
@@ -157,8 +163,6 @@ public with sharing class CaseEscalationService {
             Case existing = casesById.get(caseId);
             if (existing == null) {
                 fail(results[i], ERROR_NOT_FOUND, 'Case not found or not accessible.', caseId, true);
-            } else if (existing.IsClosed) {
-                fail(results[i], ERROR_INVALID_STATE, 'Closed cases cannot be escalated.', caseId, true);
             } else if (existing.Status == STATUS_ESCALATED) {
                 fail(
                     results[i],

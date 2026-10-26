@@ -5,6 +5,7 @@
     <fieldPermissions><editable>false</editable><field>Deal_Registration__c.Channel_Manager__c</field><readable>true</readable></fieldPermissions>
     <fieldPermissions><editable>false</editable><field>Deal_Registration__c.Customer_Contact_Name__c</field><readable>true</readable></fieldPermissions>
     <fieldPermissions><editable>false</editable><field>Deal_Registration__c.Customer_Email__c</field><readable>true</readable></fieldPermissions>
+    <fieldPermissions><editable>false</editable><field>Deal_Registration__c.Expires_On__c</field><readable>true</readable></fieldPermissions>
     <fieldPermissions><editable>false</editable><field>Deal_Registration__c.Opportunity__c</field><readable>true</readable></fieldPermissions>
     <fieldPermissions><editable>false</editable><field>Deal_Registration__c.Partner_Account__c</field><readable>true</readable></fieldPermissions>
     <fieldPermissions><editable>false</editable><field>Deal_Registration__c.Product_Interest__c</field><readable>true</readable></fieldPermissions>

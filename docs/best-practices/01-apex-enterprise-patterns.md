@@ -156,7 +156,7 @@ public with sharing class CaseEscalationService {
     public static final String ESCALATION_QUEUE = 'Tier_2_Technical_Escalations';
 
     public static Boolean isEscalation(Case c, Case old) {
-        return old != null && c.Status == STATUS_ESCALATED && old.Status != STATUS_ESCALATED;
+        return c.Status == STATUS_ESCALATED && (old == null || old.Status != STATUS_ESCALATED);   // insert: old == null
     }
 
     /** Before update: converts SLA breaches into escalations, then applies the policy. */

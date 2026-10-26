@@ -4,6 +4,15 @@
         <fullName>Nexus_Tier_1_Intake</fullName>
         <active>true</active>
         <ruleEntry>
+            <assignedTo>Tier_2_Technical_Escalations</assignedTo>
+            <assignedToType>Queue</assignedToType>
+            <criteriaItems>
+                <field>Case.Status</field>
+                <operation>equals</operation>
+                <value>Escalated</value>
+            </criteriaItems>
+        </ruleEntry>
+        <ruleEntry>
             <assignedTo>Tier_1_Support</assignedTo>
             <assignedToType>Queue</assignedToType>
             <criteriaItems>

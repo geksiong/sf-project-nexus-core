@@ -246,6 +246,8 @@ sf_json apex run -o "$ALIAS" -f scripts/org-init/seed-capex.apex \
 if [[ "$PROFILE" == "full" ]]; then
     sf_json apex run -o "$ALIAS" -f scripts/org-init/seed-portals.apex \
         | jq -r '.result.logs' | grep -oE 'USER_DEBUG\|[^|]*\|DEBUG\|.*' | cut -d'|' -f4 | sed 's/^/    Portals: /'
+    sf_json apex run -o "$ALIAS" -f scripts/org-init/schedule-jobs.apex \
+        | jq -r '.result.logs' | grep -oE 'USER_DEBUG\|[^|]*\|DEBUG\|.*' | cut -d'|' -f4 | sed 's/^/    Jobs: /'
 fi
 
 if [[ "$PROFILE" == "full" ]]; then

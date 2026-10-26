@@ -20,7 +20,7 @@ public virtual with sharing class CasesSelector {
             return new List<Case>();
         }
         return [
-            SELECT Id, CaseNumber, Status, IsClosed
+            SELECT Id, CaseNumber, Status
             FROM Case
             WHERE Id IN :caseIds
             WITH USER_MODE

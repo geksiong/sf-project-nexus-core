@@ -38,6 +38,7 @@ public with sharing class CaseTeamService {
                 wanted.add(new Membership(c.Id, c.Technical_SME__c, ROLE_TECHNICAL_SME));
             }
             if (
+                old != null &&
                 CaseEscalationService.isEscalation(c, old) &&
                 old.OwnerId != null &&
                 old.OwnerId.getSObjectType() == User.SObjectType
