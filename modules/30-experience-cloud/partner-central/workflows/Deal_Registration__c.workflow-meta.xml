@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Workflow xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fieldUpdates>
+        <fullName>Deal_Registration_Approved</fullName>
+        <description>Deal Registration Approval: approved; DealRegistrationService creates the opportunity.</description>
+        <field>Status__c</field>
+        <literalValue>Approved</literalValue>
+        <name>Deal Registration: Approved</name>
+        <notifyAssignee>false</notifyAssignee>
+        <operation>Literal</operation>
+        <protected>false</protected>
+        <reevaluateOnChange>false</reevaluateOnChange>
+    </fieldUpdates>
+    <fieldUpdates>
+        <fullName>Deal_Registration_Rejected</fullName>
+        <description>Deal Registration Approval: rejected by the channel manager.</description>
+        <field>Status__c</field>
+        <literalValue>Rejected</literalValue>
+        <name>Deal Registration: Rejected</name>
+        <notifyAssignee>false</notifyAssignee>
+        <operation>Literal</operation>
+        <protected>false</protected>
+        <reevaluateOnChange>false</reevaluateOnChange>
+    </fieldUpdates>
+    <fieldUpdates>
+        <fullName>Deal_Registration_Submitted</fullName>
+        <description>Deal Registration Approval: recalled; back to Submitted.</description>
+        <field>Status__c</field>
+        <literalValue>Submitted</literalValue>
+        <name>Deal Registration: Submitted</name>
+        <notifyAssignee>false</notifyAssignee>
+        <operation>Literal</operation>
+        <protected>false</protected>
+        <reevaluateOnChange>false</reevaluateOnChange>
+    </fieldUpdates>
+</Workflow>

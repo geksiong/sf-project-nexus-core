@@ -1,0 +1,73 @@
+{
+  "appPageId": "5a335af0-b526-4048-983a-f13744bdbe71",
+  "componentName": "siteforce:sldsOneColLayout",
+  "dataProviders": [],
+  "id": "bc0a148a-9ade-4d13-94bb-c9e62171307f",
+  "label": "Topic Catalog",
+  "regions": [
+    {
+      "components": [
+        {
+          "componentAttributes": {
+            "bannerText": "",
+            "bannerTextWithKnowledge": "Explore other <a href=\"javascript:void(0)\" class=\"headlineArticles\">articles</a> and <a href=\"javascript:void(0)\" class=\"headlineDiscussions\">discussions</a> on this topic.",
+            "bannerTextWithoutKnowledge": "Explore other <a href=\"javascript:void(0)\" class=\"headlineDiscussions\">discussions</a> on this topic.",
+            "pageType": "",
+            "showSubTopics": true,
+            "title": "Topics",
+            "uniqueNameOrId": ""
+          },
+          "componentName": "forceCommunity:headline",
+          "id": "c9dc0565-164b-4ff7-aba7-04c11375a5d4",
+          "renderPriority": "NEUTRAL",
+          "renditionMap": {},
+          "type": "component"
+        }
+      ],
+      "id": "266d7845-b672-443a-89e8-5a7108e90199",
+      "regionName": "header",
+      "type": "region"
+    },
+    {
+      "components": [
+        {
+          "componentAttributes": {},
+          "componentName": "forceCommunity:topicCatalog",
+          "id": "a268aa91-70df-494e-9a89-ec4ef509dfb9",
+          "renderPriority": "NEUTRAL",
+          "renditionMap": {},
+          "type": "component"
+        }
+      ],
+      "id": "64f10455-08a9-4550-a6be-61322704e005",
+      "regionName": "content",
+      "type": "region"
+    },
+    {
+      "id": "7cfb874e-f8ed-4f40-80b8-5d29bcf8d687",
+      "regionName": "footer",
+      "type": "region"
+    },
+    {
+      "components": [
+        {
+          "componentAttributes": {
+            "customHeadTags": "",
+            "description": "",
+            "title": "Topic Catalog"
+          },
+          "componentName": "forceCommunity:seoAssistant",
+          "id": "d20318f7-a2c0-46bc-b3fa-287300d8752b",
+          "renditionMap": {},
+          "type": "component"
+        }
+      ],
+      "id": "ae295d03-43a5-4222-aa58-ff8a8be3e3cf",
+      "regionName": "sfdcHiddenRegion",
+      "type": "region"
+    }
+  ],
+  "themeLayoutType": "Inner",
+  "type": "view",
+  "viewType": "topic-catalog"
+}

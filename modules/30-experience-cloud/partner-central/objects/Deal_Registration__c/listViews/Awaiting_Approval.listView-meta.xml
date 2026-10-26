@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ListView xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Awaiting_Approval</fullName>
+    <columns>NAME</columns>
+    <columns>Customer_Company__c</columns>
+    <columns>Partner_Account__c</columns>
+    <columns>Estimated_Amount__c</columns>
+    <columns>Expected_Close_Date__c</columns>
+    <filterScope>Everything</filterScope>
+    <filters>
+        <field>Status__c</field>
+        <operation>equals</operation>
+        <value>Submitted</value>
+    </filters>
+    <label>Awaiting Approval</label>
+</ListView>

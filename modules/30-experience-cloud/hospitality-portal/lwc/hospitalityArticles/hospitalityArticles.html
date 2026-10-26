@@ -1,0 +1,33 @@
+<template lwc:render-mode="light">
+    <section class="nexus-articles slds-p-around_medium">
+        <h2 class="slds-text-heading_large slds-m-bottom_medium">{heading}</h2>
+        <template lwc:if={error}>
+            <p class="nexus-articles__error slds-text-color_error" role="alert">{error}</p>
+        </template>
+        <template lwc:if={isEmpty}>
+            <p class="nexus-articles__empty">No news right now. Check back soon.</p>
+        </template>
+        <template lwc:if={hasArticles}>
+            <ul class="nexus-articles__list slds-grid slds-wrap slds-gutters">
+                <template for:each={articles} for:item="article">
+                    <li key={article.id} class="nexus-articles__item slds-col slds-size_1-of-1 slds-medium-size_1-of-3">
+                        <article class="nexus-articles__card slds-box slds-m-bottom_medium">
+                            <p class="nexus-articles__category slds-text-title_caps">{article.category}</p>
+                            <h3 class="nexus-articles__title slds-text-heading_medium slds-m-vertical_x-small">
+                                {article.title}
+                            </h3>
+                            <p class="nexus-articles__summary">{article.summary}</p>
+                            <details class="slds-m-top_small">
+                                <summary>Read more</summary>
+                                <p class="nexus-articles__body slds-m-top_x-small">{article.body}</p>
+                            </details>
+                            <p class="nexus-articles__date slds-text-color_weak slds-m-top_small">
+                                {article.publishedLabel}
+                            </p>
+                        </article>
+                    </li>
+                </template>
+            </ul>
+        </template>
+    </section>
+</template>

@@ -1,0 +1,12 @@
+.nexus-articles__list {
+    list-style: none;
+    padding: 0;
+}
+
+.nexus-articles__card {
+    height: 100%;
+}
+
+.nexus-articles__body {
+    white-space: pre-line;
+}

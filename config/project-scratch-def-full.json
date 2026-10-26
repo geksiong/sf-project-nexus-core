@@ -23,6 +23,13 @@
     },
     "omniStudioSettings": {
       "enableOmniStudioMetadata": true
+    },
+    "communitiesSettings": {
+      "enableNetworksEnabled": true,
+      "enableEnablePRM": true
+    },
+    "experienceBundleSettings": {
+      "enableExperienceBundleMetadata": true
     }
   }
 }

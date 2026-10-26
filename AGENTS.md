@@ -137,6 +137,11 @@ public with sharing class ActionName {
 
 - **LWR (Lightweight Web Runtime):** Use for unauthenticated guest/public portals (`lwr-portal/`). Metadata format is `DigitalExperienceBundle`. Must use Light DOM and comply with strict Lightning Web Security (LWS).
 - **Aura Runtime (Partner Central):** Use for authenticated B2B partner portals (`aura-partner-central/`). Metadata format is `ExperienceBundle`. Standard record detail layouts, Deal Registration flows, and Partner Community role sharing.
+- **Implementation (Phase 6, `modules/30-experience-cloud`):** `hospitality-portal/` (LWR, Nexus Hospitality) and `partner-central/` (Aura, Nexus Partner Central). See ADR 0004.
+- **Guest access** is granted by `sharingGuestRules` and the site guest profile, never by `without sharing` Apex: guest-facing controllers are `with sharing` and read through `WITH USER_MODE` selectors.
+- **Partner users** use the custom `Nexus Partner User` profile (standard external profiles cannot create users); feature access goes in permission sets, which are also the network members.
+- **Org-specific site values** (`siteAdmin`, `siteGuestRecordDefaultOwner`, `emailSenderAddress`) are placeholders replaced at deploy time from `NEXUS_SITE_ADMIN` / `NEXUS_SITE_EMAIL` (`sfdx-project.json` `replacements`); export them when deploying module 30 outside the setup script. Never commit real usernames or emails.
+- **Sites deploy in stages** (`deployStages` in `config/devops/nexus-devops.json`: objects and code → sites → guest profile and sharing) and are published with `sf community publish` (`publishSites`). When re-retrieving a site, remove properties the deploy schema rejects (`geoBotsAllowed`) and keep placeholders.
 
 ---
 

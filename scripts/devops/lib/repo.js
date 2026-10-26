@@ -37,7 +37,15 @@ const TYPE_DIRS = new Set([
     'omniDataTransforms',
     'ui-widget-bundles',
     'custom-lightning-types',
-    'mcpServerDefinitions'
+    'mcpServerDefinitions',
+    'profiles',
+    'sharingRules',
+    'networks',
+    'sites',
+    'navigationMenus',
+    'experiences',
+    'digitalExperiences',
+    'digitalExperienceConfigs'
 ]);
 
 function readJson(relativePath) {
@@ -246,6 +254,9 @@ function extractReferences(relativePath) {
     } else if (relativePath.endsWith('.json')) {
         for (const m of text.matchAll(/c__([A-Za-z0-9_]+)/g)) addToken(m[1]);
         for (const m of text.matchAll(/"\$ref"\s*:\s*"\.\.\/([A-Za-z0-9_]+)\//g)) addToken(m[1]);
+        // Experience Cloud pages: custom components ("definition" : "c:name") and flows ("flowName" : "Name").
+        for (const m of text.matchAll(/"(?:definition|componentName)"\s*:\s*"c:([A-Za-z0-9_]+)"/g)) addToken(m[1]);
+        for (const m of text.matchAll(/"flowName"\s*:\s*"([A-Za-z0-9_]+)"/g)) addToken(m[1]);
     }
     return refs;
 }

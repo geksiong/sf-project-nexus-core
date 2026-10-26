@@ -7,6 +7,9 @@
  *   SalesEngineFactsSelector.instance = (SalesEngineFactsSelector) facts.create(SalesEngineFactsSelector.class);
  *   ...
  *   Assert.areEqual(1, facts.callCount('selectAccountIdsOnCreditHold'));
+ *
+ * A response that is an Exception is thrown instead of returned, to test failure paths:
+ *   new TestStub().returns('selectPublished', new QueryException('boom'))
  */
 @IsTest
 public class TestStub implements System.StubProvider {
@@ -46,6 +49,10 @@ public class TestStub implements System.StubProvider {
             calls.put(key, new List<List<Object>>());
         }
         calls.get(key).add(listOfArgs);
-        return responses.get(key);
+        Object response = responses.get(key);
+        if (response instanceof Exception) {
+            throw (Exception) response;
+        }
+        return response;
     }
 }

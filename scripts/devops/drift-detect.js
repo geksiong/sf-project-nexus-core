@@ -21,7 +21,17 @@ const { execFileSync } = require('node:child_process');
 const repo = require('./lib/repo');
 
 // Server-side normalisation makes these unreliable to diff; drift is reported but does not fail.
-const NOISY_TYPES = new Set(['layouts', 'flexipages', 'reports', 'dashboards', 'applications', 'approvalProcesses']);
+// Experience Cloud bundles embed content Ids the platform regenerates on every deploy (e.g. style media refs).
+const NOISY_TYPES = new Set([
+    'layouts',
+    'flexipages',
+    'reports',
+    'dashboards',
+    'applications',
+    'approvalProcesses',
+    'digitalExperiences',
+    'experiences'
+]);
 
 function parseArgs() {
     const args = process.argv.slice(2);
@@ -98,6 +108,10 @@ function sameText(a, b) {
     return a !== '' && b !== '' && !Number.isNaN(na) && !Number.isNaN(nb) && na === nb;
 }
 
+// Org-managed elements: a new Experience Cloud sender address only takes effect after email verification,
+// so the org keeps its own value regardless of what was deployed.
+const IGNORED_ELEMENTS = new Set(['emailSenderAddress']);
+
 const isDefaultLeaf = (node) => !node.children.length && (node.text === '' || node.text === 'false');
 
 /**
@@ -115,15 +129,41 @@ function containedIn(source, org) {
         );
         if (index !== -1) {
             available.splice(index, 1);
-        } else if (!isDefaultLeaf(child)) {
+        } else if (!isDefaultLeaf(child) && !IGNORED_ELEMENTS.has(child.name)) {
             return false;
         }
     }
     return true;
 }
 
+/** JSON counterpart of containedIn: every source value exists in the org copy (keys the org adds are ignored). */
+function jsonContainedIn(source, org) {
+    if (Array.isArray(source)) {
+        if (!Array.isArray(org) || org.length < source.length) return false;
+        const available = [...org];
+        return source.every((item) => {
+            const index = available.findIndex((candidate) => jsonContainedIn(item, candidate));
+            if (index === -1) return false;
+            available.splice(index, 1);
+            return true;
+        });
+    }
+    if (source !== null && typeof source === 'object') {
+        if (org === null || typeof org !== 'object' || Array.isArray(org)) return false;
+        return Object.entries(source).every(([key, value]) => key in org && jsonContainedIn(value, org[key]));
+    }
+    return source === org;
+}
+
 function differs(file, sourceContent, orgContent) {
     if (file.endsWith('.xml')) return !containedIn(parseXml(sourceContent), parseXml(orgContent));
+    if (file.endsWith('.json')) {
+        try {
+            return !jsonContainedIn(JSON.parse(sourceContent), JSON.parse(orgContent));
+        } catch {
+            // Not valid JSON on one side: fall through to a text comparison.
+        }
+    }
     const normalise = (content) =>
         content
             .replace(/\r\n/g, '\n')
@@ -176,7 +216,33 @@ function main() {
         };
         walk(path.join(work, 'force-app'));
 
-        // 4. Compare.
+        // 4. Compare. Source files get the deploy-time string replacements from sfdx-project.json first
+        //    (e.g. __NEXUS_SITE_ADMIN__); unset variables default to the target org's admin username / email.
+        const orgUsername = sf(['org', 'display', '--target-org', targetOrg], repo.ROOT).result.username;
+        const adminEmail = sf(
+            [
+                'data',
+                'query',
+                '--target-org',
+                targetOrg,
+                '--query',
+                `SELECT Email FROM User WHERE Username = '${orgUsername}'`
+            ],
+            repo.ROOT
+        ).result.records[0]?.Email;
+        // Defaults when a replacement variable is unset (the setup script exports the same values).
+        const replacementDefaults = { NEXUS_SITE_ADMIN: orgUsername, NEXUS_SITE_EMAIL: adminEmail };
+        const replacements = (project.replacements || []).filter((r) => r.stringToReplace && r.replaceWithEnv);
+        const sourceText = (file) =>
+            replacements.reduce(
+                (content, r) =>
+                    path.matchesGlob(file, r.glob)
+                        ? content
+                              .split(r.stringToReplace)
+                              .join(process.env[r.replaceWithEnv] || replacementDefaults[r.replaceWithEnv] || '')
+                        : content,
+                repo.readText(file)
+            );
         const drift = [];
         let compared = 0;
         for (const file of modules.flatMap((dir) => repo.listFiles(dir))) {
@@ -187,7 +253,7 @@ function main() {
             const orgFile = retrieved.get(key.toLowerCase());
             if (!orgFile) {
                 drift.push({ status: 'MISSING_IN_ORG', file, type });
-            } else if (differs(file, repo.readText(file), fs.readFileSync(orgFile, 'utf8'))) {
+            } else if (differs(file, sourceText(file), fs.readFileSync(orgFile, 'utf8'))) {
                 drift.push({ status: 'MODIFIED', file, type });
             }
         }

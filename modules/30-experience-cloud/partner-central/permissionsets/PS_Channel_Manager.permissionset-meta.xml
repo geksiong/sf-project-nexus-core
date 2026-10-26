@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<PermissionSet xmlns="http://soap.sforce.com/2006/04/metadata">
+    <applicationVisibilities><application>Nexus_Portals</application><visible>true</visible></applicationVisibilities>
+    <description>Channel manager (User 3): reviews and approves deal registrations from the partner accounts they own.</description>
+    <fieldPermissions><editable>false</editable><field>Deal_Registration__c.Channel_Manager__c</field><readable>true</readable></fieldPermissions>
+    <fieldPermissions><editable>false</editable><field>Deal_Registration__c.Customer_Contact_Name__c</field><readable>true</readable></fieldPermissions>
+    <fieldPermissions><editable>false</editable><field>Deal_Registration__c.Customer_Email__c</field><readable>true</readable></fieldPermissions>
+    <fieldPermissions><editable>false</editable><field>Deal_Registration__c.Opportunity__c</field><readable>true</readable></fieldPermissions>
+    <fieldPermissions><editable>false</editable><field>Deal_Registration__c.Partner_Account__c</field><readable>true</readable></fieldPermissions>
+    <fieldPermissions><editable>false</editable><field>Deal_Registration__c.Product_Interest__c</field><readable>true</readable></fieldPermissions>
+    <fieldPermissions><editable>false</editable><field>Deal_Registration__c.Status__c</field><readable>true</readable></fieldPermissions>
+    <hasActivationRequired>false</hasActivationRequired>
+    <label>Channel Manager</label>
+    <objectPermissions><allowCreate>false</allowCreate><allowDelete>false</allowDelete><allowEdit>false</allowEdit><allowRead>true</allowRead><modifyAllRecords>false</modifyAllRecords><object>Deal_Registration__c</object><viewAllRecords>false</viewAllRecords></objectPermissions>
+    <tabSettings><tab>Deal_Registration__c</tab><visibility>Visible</visibility></tabSettings>
+</PermissionSet>

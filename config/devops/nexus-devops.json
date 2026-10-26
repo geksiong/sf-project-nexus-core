@@ -1,7 +1,30 @@
 {
   "$comment": "Single source of truth for Nexus Core DevOps gates (scripts/devops, scripts/org-init, CI). activeModules deploy to the headless scratch org (CI); fullProfileModules need the full org shape (setup-scratch-headless.sh --profile full) and are covered by the static gates only.",
   "activeModules": ["modules/00-foundation", "modules/10-core-domain"],
-  "fullProfileModules": ["modules/20-omnistudio"],
+  "fullProfileModules": ["modules/20-omnistudio", "modules/30-experience-cloud"],
+  "deployStages": {
+    "$comment": "Full-profile modules deploy in these stages (directory names, or paths relative to the module), then whole. OmniStudio validates references at deploy time; a site's guest profile and guest sharing rules exist only once the site does.",
+    "modules/20-omnistudio": [["classes", "omniDataTransforms"], ["omniIntegrationProcedures"]],
+    "modules/30-experience-cloud": [
+      [
+        "objects",
+        "classes",
+        "triggers",
+        "lwc",
+        "flows",
+        "workflows",
+        "approvalProcesses",
+        "permissionsets",
+        "customMetadata",
+        "layouts",
+        "tabs",
+        "applications",
+        "partner-central/profiles"
+      ],
+      ["networks", "sites", "navigationMenus", "digitalExperienceConfigs", "digitalExperiences", "experiences"]
+    ]
+  },
+  "publishSites": ["Nexus Hospitality", "Nexus Partner Central"],
   "minApexCoverage": 85,
   "externalPackages": {
     "Nebula Logger - Core@4.19.5": {

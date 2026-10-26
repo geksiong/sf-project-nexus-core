@@ -37,6 +37,12 @@ _Constraint_ = platform limitation with a workaround in place; _Verify_ = suspec
 | KI-027 | OmniStudio   | Constraint | Components deploy inactive; API-activated FlexCards generate no LWC      |
 | KI-028 | OmniStudio   | Constraint | `enableOmniStudioMetadata` is irreversible and restricts names           |
 | KI-029 | DevOps       | Open       | Full-profile modules are not deployed or tested in CI                    |
+| KI-030 | Experience   | Verify     | Phase 6 pages not exercised in a browser                                 |
+| KI-031 | Experience   | Constraint | Site metadata holds org-specific values (deploy-time placeholders)       |
+| KI-032 | Experience   | Constraint | Retrieved site bundles can contain properties the deploy schema rejects  |
+| KI-033 | Experience   | Constraint | Site bundles embed regenerated content Ids (drift is advisory)           |
+| KI-034 | Experience   | Constraint | Standard external profiles cannot create users; custom profile perms ignored |
+| KI-035 | Partner      | Decision   | Approved deal registrations reserve the customer indefinitely            |
 
 ---
 
@@ -197,7 +203,8 @@ _Constraint_ = platform limitation with a workaround in place; _Verify_ = suspec
   transactions never commit (`Test.stopTest()` does not flush them), so the positive case of **Approved CapEx to
   Finance** cannot be asserted. `CapExLifecycleIntegrationTest` covers the hierarchy, peers and "no access before
   approval"; the rule itself was verified in a scratch org (an approved request gets a `Rule` share, Read, to the
-  Finance Controller role group).
+  Finance Controller role group). The Phase 6 guest sharing rule (Published `Portal_Article__c` to the Nexus
+  Hospitality guest user) has the same limitation; it was verified with `UserRecordAccess` for the guest user.
 - **Resolution:** keep the org check in the release checklist, or add a post-deploy smoke script that approves a
   request and queries `CapEx_Request__Share`.
 
@@ -275,6 +282,53 @@ _Constraint_ = platform limitation with a workaround in place; _Verify_ = suspec
 
 ### KI-029 Full-profile modules are not deployed or tested in CI — _Open_
 
-- **What happens:** CI Gate 3 builds the headless org, which has no OmniStudio. `modules/20-omnistudio` (and later
-  full-profile modules) get the static gates only; deploy, Apex tests and drift run manually with `--profile full`.
+- **What happens:** CI Gate 3 builds the headless org, which has no OmniStudio or Experience Cloud.
+  `modules/20-omnistudio` and `modules/30-experience-cloud` get the static gates only; deploy, Apex tests and drift
+  run manually with `--profile full` (a full bootstrap takes ~12 minutes, most of it site deployment).
 - **Resolution:** a second CI job on the full definition (manual dispatch or nightly, to save scratch-org quota).
+
+## Experience Cloud (Phase 6)
+
+### KI-030 Phase 6 pages not exercised in a browser — _Verify_
+
+- **What happens:** guest record access, the public site's HTTP response, deal registration routing, conversion and
+  the channel conflict rule were verified in the org, but nobody has viewed the LWR home page (component placed by
+  editing the bundle JSON), the Partner Central flow component, or logged in as the partner.
+- **Resolution:** run the README "Click-through checklist" (Phase 6).
+
+### KI-031 Site metadata holds org-specific values — _Constraint_
+
+- **What happens:** retrieved `CustomSite` files name the admin user (`siteAdmin`, `siteGuestRecordDefaultOwner`) and
+  `Network` files an email (`emailSenderAddress`, required). Source holds `__NEXUS_SITE_ADMIN__` /
+  `__NEXUS_SITE_EMAIL__`, replaced at deploy time from environment variables (`sfdx-project.json` `replacements`; the
+  setup script exports them, drift detection defaults them to the target org's admin). A new sender address only
+  takes effect after email verification, so the org keeps its own value and drift ignores `emailSenderAddress`.
+- **Impact:** any other deploy of module 30 (CI, sandbox) must export both variables first.
+
+### KI-032 Retrieved site bundles can contain properties the deploy schema rejects — _Constraint_
+
+- **What happens:** the LWR site's `sfdc_cms__site` content retrieved with `geoBotsAllowed`, which the deploy then
+  rejected ("additionalProperties ... false"). It was removed from source.
+- **Impact:** after editing a site in Experience Builder and re-retrieving it, repeat the cleanup and restore the
+  placeholders (KI-031).
+
+### KI-033 Site bundles embed regenerated content Ids — _Constraint_
+
+- **What happens:** LWR style files reference managed content by Id (`sfdc_cms:media.source.ref`), and the platform
+  creates new content on every deploy. `digitalExperiences` and `experiences` are therefore advisory in drift
+  detection (reported, not failing).
+
+### KI-034 Standard external profiles cannot create users; custom profile permissions ignored — _Constraint_
+
+- **What happens:** creating a user with the standard "Partner Community User" profile fails unless "Allow using
+  standard external profiles for self-registration, user creation, and login" is enabled. Nexus uses a custom
+  `Nexus Partner User` profile instead (the recommended practice). Object permissions in that profile's metadata
+  were ignored on deploy, so Account/Contact read is granted by `PS_Partner_Deal_Registration`.
+
+### KI-035 Approved deal registrations reserve the customer indefinitely — _Decision_
+
+- **What happens:** the channel conflict rule treats Submitted and Approved registrations as open, so once approved,
+  no other partner can ever register that customer, even after the opportunity is lost or closed years later. There
+  is no expiry, and registrations stay editable after approval.
+- **Decision needed:** should a registration expire (e.g. 90 days, or when its opportunity closes), and should it be
+  locked after approval? Then add the rule to `DealRegistrationService` (and a scheduled expiry if time-based).

@@ -159,5 +159,17 @@
   "sourceApiVersion": "62.0",
   "packageAliases": {
     "Nebula Logger - Core@4.19.5": "04tg7000000IzRdAAK"
-  }
+  },
+  "replacements": [
+    {
+      "glob": "modules/30-experience-cloud/**/sites/*.site-meta.xml",
+      "stringToReplace": "__NEXUS_SITE_ADMIN__",
+      "replaceWithEnv": "NEXUS_SITE_ADMIN"
+    },
+    {
+      "glob": "modules/30-experience-cloud/**/networks/*.network-meta.xml",
+      "stringToReplace": "__NEXUS_SITE_EMAIL__",
+      "replaceWithEnv": "NEXUS_SITE_EMAIL"
+    }
+  ]
 }

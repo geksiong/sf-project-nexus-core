@@ -1,0 +1,57 @@
+{
+  "appPageId": "5a335af0-b526-4048-983a-f13744bdbe71",
+  "componentName": "siteforce:sldsOneColLayout",
+  "dataProviders": [],
+  "id": "5d30c9e3-9ab4-4a69-9720-61579df31d82",
+  "label": "Error",
+  "regions": [
+    {
+      "id": "0ff23273-3850-4b0b-960a-88eb1bfc058a",
+      "regionName": "header",
+      "type": "region"
+    },
+    {
+      "components": [
+        {
+          "componentAttributes": {
+            "richTextValue": " <div class='slds-grid slds-grid--vertical slds-align--absolute-center slds-container--large'>   <div class='slds-align-middle slds-m-bottom--xx-large slds-m-top--xx-large' alt='Page not available'>      <img src='/sfsites/c/img/community/slds/messaging/illustration-page-not-found.png' class='slds-p-horizontal--large'/>   </div>   <h4 class='slds-text-align--center slds-text-heading--large slds-text-color--weak slds-m-bottom--small'>Page not available</h4>    <p class='slds-text-align--center slds-text-heading--medium slds-text-color--weak'>Maybe the page was deleted, the URL is incorrect, or something else went wrong. If you know the page exists but you still can’t get to it, please ask the community administrator for help.</p>  </div>"
+          },
+          "componentName": "forceCommunity:htmlBlock",
+          "id": "8d640f22-7491-4029-8622-d9b9c12492a8",
+          "renderPriority": "NEUTRAL",
+          "renditionMap": {},
+          "type": "component"
+        }
+      ],
+      "id": "fb4f99dc-0ba3-41c6-9c3d-fee3dd98646d",
+      "regionName": "content",
+      "type": "region"
+    },
+    {
+      "id": "84a190be-38ca-4dbc-be1f-115f0f740afd",
+      "regionName": "footer",
+      "type": "region"
+    },
+    {
+      "components": [
+        {
+          "componentAttributes": {
+            "customHeadTags": "",
+            "description": "",
+            "title": "Error"
+          },
+          "componentName": "forceCommunity:seoAssistant",
+          "id": "f71eb44a-30b7-4d43-84fb-b7096c92caeb",
+          "renditionMap": {},
+          "type": "component"
+        }
+      ],
+      "id": "1f3e43dc-33b9-4b04-8450-253001f130a4",
+      "regionName": "sfdcHiddenRegion",
+      "type": "region"
+    }
+  ],
+  "themeLayoutType": "Inner",
+  "type": "view",
+  "viewType": "error"
+}

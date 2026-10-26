@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Profile xmlns="http://soap.sforce.com/2006/04/metadata">
+    <custom>true</custom>
+    <description>Partner users of Nexus Partner Central (Partner Community license). Feature access comes from permission sets (PS_Partner_Deal_Registration); standard external profiles cannot be used to create users.</description>
+    <userLicense>Partner Community</userLicense>
+    <userPermissions>
+        <enabled>true</enabled>
+        <name>RunFlow</name>
+    </userPermissions>
+</Profile>
