@@ -103,15 +103,24 @@ sf_json project deploy start -o "$ALIAS" "${DEPLOY_ARGS[@]}" --wait 30 \
 # Mapper or Apex class it calls. Each stage is activated before the next (deployed components can arrive
 # inactive; activation through the data API matches the designers' Activate button).
 activate_omnistudio() {
-    local body object id
+    local module="$1" body object names id response
     body=$(mktemp)
     echo '{"IsActive":true}' > "$body"
-    for spec in "OmniDataTransform:" "OmniProcess: AND IsIntegrationProcedure = true" "OmniUiCard:"; do
+    # Only this module's components (by unique name, from the source file names): never other versions or drafts
+    # in the org, which would switch an Integration Procedure's active version.
+    for spec in "OmniDataTransform:rpt" "OmniProcess:oip" "OmniUiCard:ouc"; do
         object="${spec%%:*}"
-        for id in $(sf_json data query -o "$ALIAS" -q "SELECT Id FROM $object WHERE IsActive = false${spec#*:}" \
+        names=$(find "$module" -name "*.${spec#*:}-meta.xml" -exec basename {} ".${spec#*:}-meta.xml" \; \
+            | sed "s/.*/'&'/" | paste -sd, -)
+        [[ -z "$names" ]] && continue
+        for id in $(sf_json data query -o "$ALIAS" -q "SELECT Id FROM $object WHERE IsActive = false AND UniqueName IN ($names)" \
             | jq -r '.result.records[].Id'); do
-            sf api request rest "/services/data/v62.0/sobjects/$object/$id" -o "$ALIAS" --method PATCH \
-                --body "@$body" >/dev/null
+            response=$(sf api request rest "/services/data/v62.0/sobjects/$object/$id" -o "$ALIAS" --method PATCH \
+                --body "@$body" 2>&1) || true
+            if grep -q '"errorCode"' <<<"$response"; then
+                echo "Activating $object $id failed: $response" >&2
+                exit 1
+            fi
             echo "    Activated $object $id"
         done
     done
@@ -130,7 +139,7 @@ for module in "${FULL_MODULES[@]}"; do
         [[ ${#STAGE_ARGS[@]} -eq 0 ]] && continue
         sf_json project deploy start -o "$ALIAS" "${STAGE_ARGS[@]}" --wait 30 \
             | jq -r --arg s "${stage:-remaining metadata}" '"    \($s): \(.result.numberComponentsDeployed) components deployed"'
-        activate_omnistudio
+        activate_omnistudio "$module"
     done
 done
 
