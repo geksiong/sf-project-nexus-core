@@ -182,6 +182,45 @@ Procedure cannot be executed and a FlexCard cannot be rendered from the CLI. In 
 
 Report anything that differs; fixes go in a follow-up.
 
+## Experience Cloud: Hospitality Portal & Partner Central (Phase 6)
+
+Full profile (`setup-scratch-headless.sh --profile full`), [ADR 0004](docs/adr/0004-dual-experience-cloud-runtimes.md).
+Back office: **Nexus Portals** app. Sites: Setup → Digital Experiences → All Sites.
+
+| Component (`modules/30-experience-cloud`)                                                                      | Purpose                                                                                                        |
+| -------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
+| **Nexus Hospitality** (LWR, `DigitalExperienceBundle`, public access), `/hospitality`                          | Public portal; home page shows `hospitalityArticles` (Light DOM LWC)                                           |
+| `Portal_Article__c` + **Portal Content Approval** (author's manager)                                           | Draft → In Review → Published; only Published articles are visible to the site guest user (guest sharing rule) |
+| `PortalContentController` → `PortalContentService` → `PortalArticlesSelector` (user mode)                      | Guest reads under the guest user's own sharing and field access; no `without sharing`                          |
+| **Nexus Partner Central** (Aura, `ExperienceBundle`, Partner Central template, PRM), `/partners`               | Partner portal; home page sidebar runs the **Partner Deal Registration** flow                                  |
+| `Deal_Registration__c` + **Deal Registration Approval** (channel manager = partner account owner)              | Private OWD; partner role hierarchy; approval creates the customer account and opportunity                     |
+| `DealRegistrationService`, `DealRegistrationFactsSelector`, `SubmitDealRegistrationAction`                     | Routing, channel conflict rule (one open registration per customer across partners), conversion                |
+| `PS_Portal_Content_Author`, `PS_Partner_Deal_Registration`, `PS_Channel_Manager`, `Nexus Partner User` profile | Access model                                                                                                   |
+
+Personas: the admin authors content and the Sales Manager approves it; the Sales Manager is also the channel manager
+who owns **Nexus Global Channel Partners**, whose contact **Tom Alvarez** is the partner user (Partner Community
+license). Site metadata carries two deploy-time placeholders (`sfdx-project.json` `replacements`):
+`NEXUS_SITE_ADMIN` and `NEXUS_SITE_EMAIL`, which the setup script exports.
+
+### Click-through checklist (runtime verification, KI-030)
+
+Verified from the CLI: guest record access (the guest user reads the three Published articles, not the draft), the
+public site answers HTTP 200, and a deal registration owned by Tom routes to the Sales Manager, converts on approval
+and blocks a second registration for the same customer. Still to check in a browser:
+
+1. **Public portal:** in a private window open `https://<my-domain>.scratch.my.site.com/hospitality`. Expect the
+   welcome heading and three article cards (Spring spa escape, Harbour lights festival, Packing for a city break);
+   the draft "Summer rooftop menu" must not appear.
+2. **Publishing:** in **Nexus Portals → Portal Articles**, create an article and **Submit for Approval**. Log in as
+   Sam Manager (Setup → Users → Login) and approve it. Reload the portal: the new article appears.
+3. **Partner registration:** open Tom Alvarez's contact → **Log in to Experience as User** → Nexus Partner Central.
+   Complete **Register a Deal** in the sidebar: expect the success screen. Register the same customer again: expect
+   "Channel conflict: ...".
+4. **Approval:** as Sam Manager, approve the registration (Approval Requests). Its **Opportunity** field links to the
+   new opportunity, owned by Sam, with Lead Source "Partner Referral".
+5. **Partner visibility:** as Tom, open `/partners/s/recordlist/Deal_Registration__c/Default`: Tom sees his own
+   registrations only.
+
 ## Quality Gates & CI (Phase 2)
 
 | Command                                                       | Gate                                                                                                                           |

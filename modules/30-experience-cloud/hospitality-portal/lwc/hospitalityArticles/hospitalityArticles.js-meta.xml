@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<LightningComponentBundle xmlns="http://soap.sforce.com/2006/04/metadata">
+    <apiVersion>62.0</apiVersion>
+    <description>Published hospitality articles for the Nexus Hospitality LWR site (Light DOM, guest accessible).</description>
+    <isExposed>true</isExposed>
+    <masterLabel>Hospitality Articles</masterLabel>
+    <targets>
+        <target>lightningCommunity__Page</target>
+        <target>lightningCommunity__Default</target>
+    </targets>
+    <targetConfigs>
+        <targetConfig targets="lightningCommunity__Default">
+            <property name="heading" type="String" label="Heading" default="Latest from Nexus Hospitality"/>
+            <property name="category" type="String" label="Category (Offers, Events, Travel Tips; empty for all)"/>
+        </targetConfig>
+    </targetConfigs>
+</LightningComponentBundle>

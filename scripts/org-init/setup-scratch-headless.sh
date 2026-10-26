@@ -125,28 +125,49 @@ activate_omnistudio() {
         done
     done
 }
+if [[ ${#FULL_MODULES[@]} -gt 0 ]]; then
+    # Deploy-time string replacements (sfdx-project.json "replacements"): org-specific values in site metadata.
+    export NEXUS_SITE_ADMIN NEXUS_SITE_EMAIL
+    NEXUS_SITE_ADMIN=$(sf_json org display -o "$ALIAS" | jq -r '.result.username')
+    NEXUS_SITE_EMAIL=$(sf_json data query -o "$ALIAS" -q "SELECT Email FROM User WHERE Username = '$NEXUS_SITE_ADMIN'" \
+        | jq -r '.result.records[0].Email')
+fi
 for module in "${FULL_MODULES[@]}"; do
     step "Deploying $module (full profile)"
-    for stage in "classes omniDataTransforms" "omniIntegrationProcedures" ""; do
+    STAGES=()
+    while IFS= read -r stage; do STAGES+=("$stage"); done < <(jq -r --arg m "$module" \
+        '(.deployStages[$m] // [])[] | join(" ")' config/devops/nexus-devops.json)
+    STAGES+=("")
+    for stage in "${STAGES[@]}"; do
         STAGE_ARGS=()
         if [[ -z "$stage" ]]; then
             STAGE_ARGS=(-d "$module")
         else
-            for type_dir in $stage; do
-                while IFS= read -r dir; do STAGE_ARGS+=(-d "$dir"); done < <(find "$module" -type d -name "$type_dir")
+            for entry in $stage; do
+                if [[ "$entry" == */* ]]; then
+                    [[ -d "$module/$entry" ]] && STAGE_ARGS+=(-d "$module/$entry")
+                else
+                    while IFS= read -r dir; do STAGE_ARGS+=(-d "$dir"); done < <(find "$module" -type d -name "$entry")
+                fi
             done
         fi
         [[ ${#STAGE_ARGS[@]} -eq 0 ]] && continue
         sf_json project deploy start -o "$ALIAS" "${STAGE_ARGS[@]}" --wait 30 \
-            | jq -r --arg s "${stage:-remaining metadata}" '"    \($s): \(.result.numberComponentsDeployed) components deployed"'
+            | jq -r --arg s "${stage:-remaining metadata}" '"    \($s | .[0:60]): \(.result.numberComponentsDeployed) components deployed"'
         activate_omnistudio "$module"
     done
 done
+if [[ "$PROFILE" == "full" ]]; then
+    while IFS= read -r site; do
+        step "Publishing site '$site'"
+        sf_json community publish -o "$ALIAS" --name "$site" | jq -r '"    \(.result.url)"'
+    done < <(jq -r '(.publishSites // [])[]' config/devops/nexus-devops.json)
+fi
 
 step "Assigning admin permission sets"
 ADMIN_ID=$(sf_json org display user -o "$ALIAS" | jq -r '.result.id')
 PERMSETS=(PS_Nexus_Admin PS_Sales_Admin LoggerAdmin PS_CapEx_Submitter PS_CapEx_Admin)
-[[ "$PROFILE" == "full" ]] && PERMSETS+=(PS_Customer360_User)
+[[ "$PROFILE" == "full" ]] && PERMSETS+=(PS_Customer360_User PS_Portal_Content_Author PS_Channel_Manager)
 for permset in "${PERMSETS[@]}"; do
     if [[ -z "$(query_id "SELECT Id FROM PermissionSetAssignment WHERE AssigneeId = '$ADMIN_ID' AND PermissionSet.Name = '$permset'")" ]]; then
         sf_json org assign permset -o "$ALIAS" -n "$permset" >/dev/null
@@ -222,6 +243,37 @@ sf_json apex run -o "$ALIAS" -f scripts/org-init/seed-service-desk.apex \
     | jq -r '.result.logs' | grep -oE 'USER_DEBUG\|[^|]*\|DEBUG\|.*' | cut -d'|' -f4 | sed 's/^/    Service desk: /'
 sf_json apex run -o "$ALIAS" -f scripts/org-init/seed-capex.apex \
     | jq -r '.result.logs' | grep -oE 'USER_DEBUG\|[^|]*\|DEBUG\|.*' | cut -d'|' -f4 | sed 's/^/    CapEx: /'
+if [[ "$PROFILE" == "full" ]]; then
+    sf_json apex run -o "$ALIAS" -f scripts/org-init/seed-portals.apex \
+        | jq -r '.result.logs' | grep -oE 'USER_DEBUG\|[^|]*\|DEBUG\|.*' | cut -d'|' -f4 | sed 's/^/    Portals: /'
+fi
+
+if [[ "$PROFILE" == "full" ]]; then
+    # Partner Central persona (after seeding: the partner account comes from data/): the Sales Manager is the channel manager who owns the partner account; its
+    # contact Tom Alvarez becomes a partner user (custom profile: standard external profiles cannot create users).
+    step "Creating Partner Central persona (partner account, partner user)"
+    PARTNER_ACCOUNT_ID=$(query_id "SELECT Id FROM Account WHERE Name = 'Nexus Global Channel Partners'")
+    sf_json data update record -o "$ALIAS" -s Account -i "$PARTNER_ACCOUNT_ID" \
+        -v "OwnerId=$MANAGER_ID IsPartner=true" >/dev/null
+    PARTNER_CONTACT_ID=$(query_id "SELECT Id FROM Contact WHERE AccountId = '$PARTNER_ACCOUNT_ID' AND LastName = 'Alvarez'")
+    PARTNER_USER_ID=$(query_id "SELECT Id FROM User WHERE ContactId = '$PARTNER_CONTACT_ID'")
+    if [[ -z "$PARTNER_USER_ID" ]]; then
+        PARTNER_PROFILE_ID=$(query_id "SELECT Id FROM Profile WHERE Name = 'Nexus Partner User'")
+        STAMP=$(date +%s)
+        PARTNER_USER_ID=$(sf_json data create record -o "$ALIAS" -s User -v "Username=tom.alvarez.$STAMP@nexuscore.dev \
+FirstName=Tom LastName=Alvarez Alias=talva Email=tom.alvarez@nexuscore.example.com ProfileId=$PARTNER_PROFILE_ID \
+ContactId=$PARTNER_CONTACT_ID CommunityNickname=talvarez$STAMP TimeZoneSidKey=America/Los_Angeles LocaleSidKey=en_US \
+EmailEncodingKey=UTF-8 LanguageLocaleKey=en_US" | jq -r '.result.id')
+    fi
+    for assignment in "$PARTNER_USER_ID:PS_Partner_Deal_Registration" "$MANAGER_ID:PS_Channel_Manager"; do
+        PS_ID=$(query_id "SELECT Id FROM PermissionSet WHERE Name = '${assignment#*:}'")
+        if [[ -z "$(query_id "SELECT Id FROM PermissionSetAssignment WHERE AssigneeId = '${assignment%%:*}' AND PermissionSetId = '$PS_ID'")" ]]; then
+            sf_json data create record -o "$ALIAS" -s PermissionSetAssignment \
+                -v "AssigneeId=${assignment%%:*} PermissionSetId=$PS_ID" >/dev/null
+        fi
+    done
+    echo "    Partner user Tom Alvarez ($PARTNER_USER_ID) at Nexus Global Channel Partners; channel manager $MANAGER_ID"
+fi
 
 if [[ "$SKIP_TESTS" == false ]]; then
     step "Running Nexus Core Apex tests (coverage gate)"
@@ -234,3 +286,4 @@ echo "    Sales app:     sf org open -o $ALIAS -p lightning/app/c__Nexus_Sales"
 echo "    Service app:   sf org open -o $ALIAS -p lightning/app/c__Nexus_Service"
 echo "    Operations:    sf org open -o $ALIAS -p lightning/app/c__Nexus_Operations"
 [[ "$PROFILE" == "full" ]] && echo "    Customer 360:  sf org open -o $ALIAS -p lightning/app/c__Nexus_Customer_360"
+[[ "$PROFILE" == "full" ]] && echo "    Portals:       sf org open -o $ALIAS -p lightning/app/c__Nexus_Portals (sites: Setup > Digital Experiences)"

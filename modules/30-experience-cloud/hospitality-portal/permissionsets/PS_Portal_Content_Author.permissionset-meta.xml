@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<PermissionSet xmlns="http://soap.sforce.com/2006/04/metadata">
+    <applicationVisibilities><application>Nexus_Portals</application><visible>true</visible></applicationVisibilities>
+    <description>Writes Nexus Hospitality portal articles and submits them for approval (the author&apos;s manager publishes).</description>
+    <fieldPermissions><editable>true</editable><field>Portal_Article__c.Body__c</field><readable>true</readable></fieldPermissions>
+    <fieldPermissions><editable>true</editable><field>Portal_Article__c.Category__c</field><readable>true</readable></fieldPermissions>
+    <fieldPermissions><editable>false</editable><field>Portal_Article__c.Published_On__c</field><readable>true</readable></fieldPermissions>
+    <fieldPermissions><editable>false</editable><field>Portal_Article__c.Status__c</field><readable>true</readable></fieldPermissions>
+    <fieldPermissions><editable>true</editable><field>Portal_Article__c.Summary__c</field><readable>true</readable></fieldPermissions>
+    <hasActivationRequired>false</hasActivationRequired>
+    <label>Portal Content Author</label>
+    <objectPermissions><allowCreate>true</allowCreate><allowDelete>false</allowDelete><allowEdit>true</allowEdit><allowRead>true</allowRead><modifyAllRecords>false</modifyAllRecords><object>Portal_Article__c</object><viewAllRecords>false</viewAllRecords></objectPermissions>
+    <tabSettings><tab>Portal_Article__c</tab><visibility>Visible</visibility></tabSettings>
+</PermissionSet>

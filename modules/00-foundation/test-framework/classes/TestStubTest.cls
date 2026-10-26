@@ -17,6 +17,19 @@ private class TestStubTest {
     }
 
     @IsTest
+    static void exceptionResponsesAreThrown() {
+        TestStub stub = new TestStub().returns('selectRecentByLevels', new QueryException('Stubbed failure'));
+        LogEntriesSelector selector = (LogEntriesSelector) stub.create(LogEntriesSelector.class);
+        try {
+            selector.selectRecentByLevels(new Set<String>{ 'ERROR' }, 1);
+            Assert.fail('Expected the stubbed exception');
+        } catch (QueryException ex) {
+            Assert.areEqual('Stubbed failure', ex.getMessage());
+        }
+        Assert.areEqual(1, stub.callCount('selectRecentByLevels'), 'The failed call is still recorded');
+    }
+
+    @IsTest
     static void unconfiguredMethodsReturnNull() {
         LogEntriesSelector selector = (LogEntriesSelector) new TestStub().create(LogEntriesSelector.class);
         Assert.isNull(selector.selectRecentByLevels(new Set<String>{ 'ERROR' }, 1));

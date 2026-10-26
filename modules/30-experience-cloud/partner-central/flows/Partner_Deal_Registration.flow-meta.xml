@@ -1,0 +1,251 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Flow xmlns="http://soap.sforce.com/2006/04/metadata">
+    <actionCalls>
+        <description>Validation, channel conflict check, routing to the channel manager and approval are done by DealRegistrationService via the uniform result envelope.</description>
+        <name>Submit_Deal_Registration</name>
+        <label>Submit Deal Registration</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <actionName>SubmitDealRegistrationAction</actionName>
+        <actionType>apex</actionType>
+        <connector>
+            <targetReference>Registration_Succeeded</targetReference>
+        </connector>
+        <faultConnector>
+            <targetReference>Fault_Screen</targetReference>
+        </faultConnector>
+        <flowTransactionModel>CurrentTransaction</flowTransactionModel>
+        <inputParameters>
+            <name>customerCompany</name>
+            <value>
+                <elementReference>Customer_Company</elementReference>
+            </value>
+        </inputParameters>
+        <inputParameters>
+            <name>customerContactName</name>
+            <value>
+                <elementReference>Customer_Contact_Name</elementReference>
+            </value>
+        </inputParameters>
+        <inputParameters>
+            <name>customerEmail</name>
+            <value>
+                <elementReference>Customer_Email</elementReference>
+            </value>
+        </inputParameters>
+        <inputParameters>
+            <name>estimatedAmount</name>
+            <value>
+                <elementReference>Estimated_Amount</elementReference>
+            </value>
+        </inputParameters>
+        <inputParameters>
+            <name>expectedCloseDate</name>
+            <value>
+                <elementReference>Expected_Close_Date</elementReference>
+            </value>
+        </inputParameters>
+        <inputParameters>
+            <name>productInterest</name>
+            <value>
+                <elementReference>Product_Interest</elementReference>
+            </value>
+        </inputParameters>
+        <outputParameters>
+            <assignToReference>varIsSuccess</assignToReference>
+            <name>isSuccess</name>
+        </outputParameters>
+        <outputParameters>
+            <assignToReference>varErrorMessage</assignToReference>
+            <name>errorMessage</name>
+        </outputParameters>
+    </actionCalls>
+    <apiVersion>62.0</apiVersion>
+    <decisions>
+        <name>Registration_Succeeded</name>
+        <label>Registration Succeeded?</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <defaultConnector>
+            <targetReference>Error_Screen</targetReference>
+        </defaultConnector>
+        <defaultConnectorLabel>Failed</defaultConnectorLabel>
+        <rules>
+            <name>Succeeded</name>
+            <conditionLogic>and</conditionLogic>
+            <conditions>
+                <leftValueReference>varIsSuccess</leftValueReference>
+                <operator>EqualTo</operator>
+                <rightValue>
+                    <booleanValue>true</booleanValue>
+                </rightValue>
+            </conditions>
+            <connector>
+                <targetReference>Success_Screen</targetReference>
+            </connector>
+            <label>Succeeded</label>
+        </rules>
+    </decisions>
+    <description>Partner deal registration for Nexus Partner Central (Demo App 6): captures the deal and submits it through SubmitDealRegistrationAction, which routes it to the channel manager for approval.</description>
+    <dynamicChoiceSets>
+        <name>ProductInterestChoices</name>
+        <dataType>Picklist</dataType>
+        <displayField xsi:nil="true" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"/>
+        <object xsi:nil="true" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"/>
+        <picklistField>Product_Interest__c</picklistField>
+        <picklistObject>Deal_Registration__c</picklistObject>
+    </dynamicChoiceSets>
+    <environments>Default</environments>
+    <interviewLabel>Partner Deal Registration {!$Flow.CurrentDateTime}</interviewLabel>
+    <label>Partner Deal Registration</label>
+    <processMetadataValues>
+        <name>BuilderType</name>
+        <value>
+            <stringValue>LightningFlowBuilder</stringValue>
+        </value>
+    </processMetadataValues>
+    <processMetadataValues>
+        <name>CanvasMode</name>
+        <value>
+            <stringValue>AUTO_LAYOUT_CANVAS</stringValue>
+        </value>
+    </processMetadataValues>
+    <processType>Flow</processType>
+    <runInMode>DefaultMode</runInMode>
+    <screens>
+        <name>Error_Screen</name>
+        <label>Could Not Register</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <allowBack>true</allowBack>
+        <allowFinish>true</allowFinish>
+        <allowPause>false</allowPause>
+        <fields>
+            <name>Error_Message</name>
+            <fieldText>&lt;p&gt;&lt;strong style=&quot;color: rgb(194, 57, 52);&quot;&gt;The deal could not be registered.&lt;/strong&gt;&lt;/p&gt;&lt;p&gt;{!varErrorMessage}&lt;/p&gt;</fieldText>
+            <fieldType>DisplayText</fieldType>
+        </fields>
+        <showFooter>true</showFooter>
+        <showHeader>false</showHeader>
+    </screens>
+    <screens>
+        <name>Fault_Screen</name>
+        <label>Unexpected Error</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <allowBack>false</allowBack>
+        <allowFinish>true</allowFinish>
+        <allowPause>false</allowPause>
+        <fields>
+            <name>Fault_Message</name>
+            <fieldText>&lt;p&gt;&lt;strong style=&quot;color: rgb(194, 57, 52);&quot;&gt;An unexpected error occurred.&lt;/strong&gt;&lt;/p&gt;&lt;p&gt;{!$Flow.FaultMessage}&lt;/p&gt;</fieldText>
+            <fieldType>DisplayText</fieldType>
+        </fields>
+        <showFooter>true</showFooter>
+        <showHeader>false</showHeader>
+    </screens>
+    <screens>
+        <name>Registration_Screen</name>
+        <label>Register a Deal</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <allowBack>false</allowBack>
+        <allowFinish>true</allowFinish>
+        <allowPause>false</allowPause>
+        <connector>
+            <targetReference>Submit_Deal_Registration</targetReference>
+        </connector>
+        <fields>
+            <name>Intro</name>
+            <fieldText>&lt;p&gt;&lt;strong&gt;Register a deal&lt;/strong&gt;&lt;/p&gt;&lt;p&gt;Registered customers are reserved for your organisation once your channel manager approves. A customer can only be registered by one partner at a time.&lt;/p&gt;</fieldText>
+            <fieldType>DisplayText</fieldType>
+        </fields>
+        <fields>
+            <name>Customer_Company</name>
+            <dataType>String</dataType>
+            <fieldText>Customer Company</fieldText>
+            <fieldType>InputField</fieldType>
+            <isRequired>true</isRequired>
+        </fields>
+        <fields>
+            <name>Customer_Contact_Name</name>
+            <dataType>String</dataType>
+            <fieldText>Customer Contact Name</fieldText>
+            <fieldType>InputField</fieldType>
+            <isRequired>false</isRequired>
+        </fields>
+        <fields>
+            <name>Customer_Email</name>
+            <dataType>String</dataType>
+            <fieldText>Customer Email</fieldText>
+            <fieldType>InputField</fieldType>
+            <isRequired>false</isRequired>
+        </fields>
+        <fields>
+            <name>Estimated_Amount</name>
+            <dataType>Currency</dataType>
+            <fieldText>Estimated Amount</fieldText>
+            <fieldType>InputField</fieldType>
+            <scale>2</scale>
+            <isRequired>true</isRequired>
+        </fields>
+        <fields>
+            <name>Expected_Close_Date</name>
+            <dataType>Date</dataType>
+            <fieldText>Expected Close Date</fieldText>
+            <fieldType>InputField</fieldType>
+            <isRequired>true</isRequired>
+        </fields>
+        <fields>
+            <name>Product_Interest</name>
+            <choiceReferences>ProductInterestChoices</choiceReferences>
+            <dataType>String</dataType>
+            <fieldText>Product Interest</fieldText>
+            <fieldType>DropdownBox</fieldType>
+            <isRequired>false</isRequired>
+        </fields>
+        <showFooter>true</showFooter>
+        <showHeader>false</showHeader>
+    </screens>
+    <screens>
+        <name>Success_Screen</name>
+        <label>Deal Registered</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <allowBack>false</allowBack>
+        <allowFinish>true</allowFinish>
+        <allowPause>false</allowPause>
+        <fields>
+            <name>Success_Message</name>
+            <fieldText>&lt;p&gt;&lt;strong style=&quot;color: rgb(46, 132, 74);&quot;&gt;{!Customer_Company} is registered.&lt;/strong&gt;&lt;/p&gt;&lt;p&gt;Your channel manager has been asked to approve it. You can follow its status under Deal Registrations.&lt;/p&gt;</fieldText>
+            <fieldType>DisplayText</fieldType>
+        </fields>
+        <showFooter>true</showFooter>
+        <showHeader>false</showHeader>
+    </screens>
+    <start>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <connector>
+            <targetReference>Registration_Screen</targetReference>
+        </connector>
+    </start>
+    <status>Active</status>
+    <variables>
+        <name>varErrorMessage</name>
+        <dataType>String</dataType>
+        <isCollection>false</isCollection>
+        <isInput>false</isInput>
+        <isOutput>false</isOutput>
+    </variables>
+    <variables>
+        <name>varIsSuccess</name>
+        <dataType>Boolean</dataType>
+        <isCollection>false</isCollection>
+        <isInput>false</isInput>
+        <isOutput>false</isOutput>
+        <value>
+            <booleanValue>false</booleanValue>
+        </value>
+    </variables>
+</Flow>

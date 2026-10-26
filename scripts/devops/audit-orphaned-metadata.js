@@ -38,7 +38,11 @@ function main() {
         files.filter((f) => repo.metadataKey(f)?.startsWith(`${dir}/`) && f.endsWith(suffix));
     const stem = (file, suffix) => path.basename(file, suffix);
 
-    const permissionSets = byType('permissionsets', '.permissionset-meta.xml').map((f) => text.get(f));
+    // Grants come from permission sets and (for site guest users and external users) profiles.
+    const permissionSets = [
+        ...byType('permissionsets', '.permissionset-meta.xml'),
+        ...byType('profiles', '.profile-meta.xml')
+    ].map((f) => text.get(f));
     const permissionXml = permissionSets.join('\n');
     const granted = (element, value) => new RegExp(`<${element}>${escape(value)}</${element}>`).test(permissionXml);
 
@@ -59,7 +63,10 @@ function main() {
         const source = repo.stripComments(text.get(file));
         const isTest = /@IsTest/i.test(source);
         if (isTest) continue;
-        const isEntryPoint = /@(AuraEnabled|InvocableMethod|RestResource)\b/i.test(source);
+        // Entry points are annotated methods or REST classes; @AuraEnabled on DTO properties does not count.
+        const isEntryPoint =
+            /@(AuraEnabled|InvocableMethod)\b(\([^)]*\))?\s+(public|global)\s+static\b/i.test(source) ||
+            /@RestResource\b/i.test(source);
         if (isEntryPoint && !granted('apexClass', name)) {
             report('missing-class-access', name, 'Apex entry point not granted in any permission set classAccesses');
         }

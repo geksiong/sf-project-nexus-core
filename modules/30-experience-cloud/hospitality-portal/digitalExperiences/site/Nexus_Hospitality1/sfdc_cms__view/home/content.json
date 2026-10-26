@@ -1,0 +1,90 @@
+{
+  "type": "sfdc_cms__view",
+  "title": "Home",
+  "contentBody": {
+    "component": {
+      "children": [
+        {
+          "children": [
+            {
+              "attributes": {
+                "backgroundImageConfig": "",
+                "backgroundImageOverlay": "rgba(0,0,0,0)",
+                "componentSpacerSize": "",
+                "layoutDirectionDesktop": "row",
+                "layoutDirectionMobile": "column",
+                "layoutDirectionTablet": "column",
+                "maxContentWidth": "",
+                "sectionColumnGutterWidth": "",
+                "sectionConfig": "{\"UUID\":\"db71d340-29aa-4279-a44a-9998c172a580\",\"columns\":[{\"UUID\":\"65c99f7f-ba1d-46e4-86e7-59e185578630\",\"columnName\":\"Column 1\",\"columnKey\":\"col1\",\"columnWidth\":\"12\",\"seedComponents\":null}]}",
+                "sectionMinHeight": "",
+                "sectionVerticalAlign": "flex-start"
+              },
+              "children": [
+                {
+                  "children": [
+                    {
+                      "attributes": {
+                        "imageInfos": "",
+                        "richTextValue": "<h1 class=\"slds-text-heading_large slds-p-top_large slds-text-align_center\">Welcome to Nexus Hospitality</h1><p class=\"slds-text-align_center slds-p-bottom_medium\">Offers, events and travel tips from our hotels.</p>"
+                      },
+                      "definition": "community_builder:htmlEditor",
+                      "id": "4f0ed394-8fd8-53ad-8a86-4ce8cfd27902",
+                      "type": "component"
+                    },
+                    {
+                      "attributes": {
+                        "heading": "Latest from Nexus Hospitality",
+                        "category": ""
+                      },
+                      "definition": "c:hospitalityArticles",
+                      "id": "dce80bcf-d8ff-5045-88e1-8ec5a5772f97",
+                      "type": "component"
+                    }
+                  ],
+                  "id": "65c99f7f-ba1d-46e4-86e7-59e185578630",
+                  "name": "col1",
+                  "title": "Column 1",
+                  "type": "region"
+                }
+              ],
+              "definition": "community_layout:section",
+              "id": "db71d340-29aa-4279-a44a-9998c172a580",
+              "type": "component"
+            }
+          ],
+          "id": "57e45d82-06c9-474f-a987-3add2b5874e1",
+          "name": "content",
+          "title": "Content",
+          "type": "region"
+        },
+        {
+          "children": [
+            {
+              "attributes": {
+                "customHeadTags": "",
+                "description": "",
+                "pageTitle": "Home",
+                "recordId": "{!recordId}"
+              },
+              "definition": "community_builder:seoAssistant",
+              "id": "3e4430d3-ca9d-4b78-9a39-4bebe1343478",
+              "type": "component"
+            }
+          ],
+          "id": "1030169e-86e3-498d-aeec-9d2a65f24da4",
+          "name": "sfdcHiddenRegion",
+          "title": "sfdcHiddenRegion",
+          "type": "region"
+        }
+      ],
+      "definition": "community_layout:sldsFlexibleLayout",
+      "id": "e66cbbf4-73e6-4d94-b6d1-f09e88e5ef39",
+      "type": "component"
+    },
+    "dataProviders": [],
+    "themeLayoutType": "Inner",
+    "viewType": "home"
+  },
+  "urlName": "home"
+}

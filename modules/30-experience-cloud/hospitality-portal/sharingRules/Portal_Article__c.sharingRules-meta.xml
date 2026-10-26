@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<SharingRules xmlns="http://soap.sforce.com/2006/04/metadata">
+    <sharingGuestRules>
+        <fullName>Published_Articles_to_Site_Guests</fullName>
+        <accessLevel>Read</accessLevel>
+        <description>The Nexus Hospitality site guest user reads Published articles only; drafts and articles in review stay private.</description>
+        <includeHVUOwnedRecords>false</includeHVUOwnedRecords>
+        <label>Published Articles to Site Guests</label>
+        <sharedTo>
+            <guestUser>Nexus_Hospitality</guestUser>
+        </sharedTo>
+        <criteriaItems>
+            <field>Status__c</field>
+            <operation>equals</operation>
+            <value>Published</value>
+        </criteriaItems>
+    </sharingGuestRules>
+</SharingRules>
