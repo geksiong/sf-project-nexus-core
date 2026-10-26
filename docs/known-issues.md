@@ -43,6 +43,7 @@ _Constraint_ = platform limitation with a workaround in place; _Verify_ = suspec
 | KI-033 | Experience   | Constraint | Site bundles embed regenerated content Ids (drift is advisory)           |
 | KI-034 | Experience   | Constraint | Standard external profiles cannot create users; custom profile perms ignored |
 | KI-035 | Partner      | Decision   | Approved deal registrations reserve the customer indefinitely            |
+| KI-036 | Experience   | Constraint | Guest Apex responses are CDN-cached: unpublished content can linger      |
 
 ---
 
@@ -327,8 +328,19 @@ _Constraint_ = platform limitation with a workaround in place; _Verify_ = suspec
 
 ### KI-035 Approved deal registrations reserve the customer indefinitely — _Decision_
 
-- **What happens:** the channel conflict rule treats Submitted and Approved registrations as open, so once approved,
-  no other partner can ever register that customer, even after the opportunity is lost or closed years later. There
-  is no expiry, and registrations stay editable after approval.
-- **Decision needed:** should a registration expire (e.g. 90 days, or when its opportunity closes), and should it be
-  locked after approval? Then add the rule to `DealRegistrationService` (and a scheduled expiry if time-based).
+- **What happens:** the channel conflict rule treats Submitted and Approved registrations as open (Rejected and
+  Withdrawn, set when the partner recalls, release the customer). Once approved, no other partner can ever register
+  that customer, even after the opportunity is lost or closed years later. There is no expiry, and registrations stay
+  editable after approval. The converted opportunity is owned by the channel manager and not shared back, so the
+  registering partner sees an Opportunity link they cannot open and cannot follow the deal.
+- **Decision needed:** should a registration expire (e.g. 90 days, or when its opportunity closes)? Should it be
+  locked after approval? Should the partner get read access to the opportunity (e.g. an Opportunity share to the
+  partner account's portal role group, or Opportunity Partner records)? Then add the rules to
+  `DealRegistrationService` (and a scheduled expiry if time-based).
+
+### KI-036 Guest Apex responses are CDN-cached — _Constraint_
+
+- **What happens:** both sites keep the default `enableApexCDNCaching`, and `PortalContentController` is
+  `cacheable=true`, so guest responses can be served from the CDN. An article that is retired (or a draft published
+  by mistake and then reverted) can stay visible to guests until the cached response expires.
+- **Resolution (if needed):** turn off Apex CDN caching for Nexus Hospitality, or accept the delay for public content.

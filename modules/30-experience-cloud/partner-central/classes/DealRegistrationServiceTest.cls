@@ -101,7 +101,7 @@ private class DealRegistrationServiceTest {
     @IsTest
     static void invalidRequestsFailBeforeAnyDml() {
         List<SubmitDealRegistrationAction.Request> requests = new List<SubmitDealRegistrationAction.Request>();
-        for (Integer i = 0; i < 4; i++) {
+        for (Integer i = 0; i < 5; i++) {
             SubmitDealRegistrationAction.Request req = new SubmitDealRegistrationAction.Request();
             req.customerCompany = 'Acme';
             req.estimatedAmount = 100;
@@ -112,6 +112,7 @@ private class DealRegistrationServiceTest {
         requests[1].estimatedAmount = 0;
         requests[2].expectedCloseDate = Date.today().addDays(-1);
         requests[3].productInterest = 'Time Machines';
+        requests[4].customerEmail = 'pat at example dot com';
 
         List<SubmitDealRegistrationAction.Result> results = SubmitDealRegistrationAction.execute(requests);
 

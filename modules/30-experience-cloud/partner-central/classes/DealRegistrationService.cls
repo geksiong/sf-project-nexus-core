@@ -18,6 +18,8 @@
 public with sharing class DealRegistrationService {
     public static final String STATUS_SUBMITTED = 'Submitted';
     public static final String STATUS_APPROVED = 'Approved';
+    public static final String STATUS_WITHDRAWN = 'Withdrawn';
+    private static final Pattern EMAIL_FORMAT = Pattern.compile('^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$');
     public static final Set<String> OPEN_STATUSES = new Set<String>{ STATUS_SUBMITTED, STATUS_APPROVED };
     public static final String CONFLICT_PREFIX = 'Channel conflict: ';
     public static final String LEAD_SOURCE = 'Partner Referral';
@@ -31,7 +33,8 @@ public with sharing class DealRegistrationService {
         StatusCode.FIELD_CUSTOM_VALIDATION_EXCEPTION,
         StatusCode.INSUFFICIENT_ACCESS_OR_READONLY,
         StatusCode.INSUFFICIENT_ACCESS_ON_CROSS_REFERENCE_ENTITY,
-        StatusCode.REQUIRED_FIELD_MISSING
+        StatusCode.REQUIRED_FIELD_MISSING,
+        StatusCode.INVALID_EMAIL_ADDRESS
     };
 
     /** @description Case- and whitespace-insensitive customer key for the channel conflict rule. */
@@ -257,6 +260,9 @@ public with sharing class DealRegistrationService {
         }
         if (req.expectedCloseDate == null || req.expectedCloseDate < Date.today()) {
             return 'Expected close date must be today or later.';
+        }
+        if (String.isNotBlank(req.customerEmail) && !EMAIL_FORMAT.matcher(req.customerEmail.trim()).matches()) {
+            return 'Customer email "' + req.customerEmail + '" is not a valid email address.';
         }
         if (String.isNotBlank(req.productInterest)) {
             for (

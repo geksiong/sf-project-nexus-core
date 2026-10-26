@@ -74,7 +74,7 @@ public virtual without sharing class DealRegistrationFactsSelector {
         return partners;
     }
 
-    /** @description Existing accounts by normalised name, to reuse the customer account on conversion. */
+    /** @description Existing customer (non-partner) accounts by normalised name, to reuse on conversion. */
     public virtual Map<String, Id> selectAccountIdsByName(Set<String> companyKeys) {
         Map<String, Id> accountIds = new Map<String, Id>();
         if (companyKeys == null || companyKeys.isEmpty()) {
@@ -83,7 +83,7 @@ public virtual without sharing class DealRegistrationFactsSelector {
         for (Account acc : [
             SELECT Id, Name
             FROM Account
-            WHERE Name IN :companyKeys
+            WHERE Name IN :companyKeys AND IsPartner = FALSE
             WITH SYSTEM_MODE
             ORDER BY CreatedDate
         ]) {

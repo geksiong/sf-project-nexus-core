@@ -23,11 +23,11 @@
         <reevaluateOnChange>false</reevaluateOnChange>
     </fieldUpdates>
     <fieldUpdates>
-        <fullName>Deal_Registration_Submitted</fullName>
-        <description>Deal Registration Approval: recalled; back to Submitted.</description>
+        <fullName>Deal_Registration_Withdrawn</fullName>
+        <description>Deal Registration Approval: recalled by the partner; the customer is no longer reserved.</description>
         <field>Status__c</field>
-        <literalValue>Submitted</literalValue>
-        <name>Deal Registration: Submitted</name>
+        <literalValue>Withdrawn</literalValue>
+        <name>Deal Registration: Withdrawn</name>
         <notifyAssignee>false</notifyAssignee>
         <operation>Literal</operation>
         <protected>false</protected>
