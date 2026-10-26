@@ -8,12 +8,17 @@
  * Contract (OmniStudio System.Callable): `call(action, {input, output, options})`; results are written to
  * `output`. Failures are logged with Nebula Logger and returned as `error` instead of being thrown, so the
  * FlexCard degrades to "Unavailable" rather than failing.
+ *
+ * The Data Mapper omits fields and records the viewer cannot see. Missing data is never presented as good
+ * health: when the account or its credit status is not visible, the result is "Incomplete" unless a risk or
+ * watch item already decides it, and `complete` is false.
  */
 public with sharing class Customer360Service implements System.Callable {
     public static final String ACTION_SUMMARIZE = 'summarize';
     public static final String HEALTH_AT_RISK = 'At Risk';
     public static final String HEALTH_WATCH = 'Watch';
     public static final String HEALTH_HEALTHY = 'Healthy';
+    public static final String HEALTH_INCOMPLETE = 'Incomplete';
     public static final String HEALTH_UNAVAILABLE = 'Unavailable';
 
     private static final String DISCOUNT_PENDING = 'Pending';
@@ -74,6 +79,8 @@ public with sharing class Customer360Service implements System.Callable {
             }
         }
         Boolean creditHold = toBoolean(account.get('Credit_Hold__c'));
+        // Credit_Hold__c is a checkbox (never null), so a missing key means the viewer cannot see it.
+        Boolean creditKnown = account.containsKey('Credit_Hold__c');
 
         List<String> riskReasons = new List<String>();
         if (creditHold) {
@@ -92,15 +99,21 @@ public with sharing class Customer360Service implements System.Callable {
         if (pendingDiscounts > 0) {
             watchReasons.add(pendingDiscounts + ' discount approval(s) pending');
         }
+        if (!creditKnown) {
+            watchReasons.add(account.isEmpty() ? 'Account not visible to you' : 'Credit status not visible to you');
+        }
         String health = !riskReasons.isEmpty()
             ? HEALTH_AT_RISK
-            : !watchReasons.isEmpty() ? HEALTH_WATCH : HEALTH_HEALTHY;
+            : watchReasons.size() > (creditKnown ? 0 : 1)
+                  ? HEALTH_WATCH
+                  : !creditKnown ? HEALTH_INCOMPLETE : HEALTH_HEALTHY;
         List<String> reasons = new List<String>(riskReasons);
         reasons.addAll(watchReasons);
 
         return new Map<String, Object>{
             'health' => health,
-            'healthVariant' => health == HEALTH_AT_RISK ? 'error' : health == HEALTH_WATCH ? 'warning' : 'success',
+            'healthVariant' => health == HEALTH_AT_RISK ? 'error' : health == HEALTH_HEALTHY ? 'success' : 'warning',
+            'complete' => creditKnown,
             'healthReasons' => reasons.isEmpty() ? 'No open risks' : String.join(reasons, '; '),
             'creditHold' => creditHold,
             'openOpportunities' => opportunities.size(),

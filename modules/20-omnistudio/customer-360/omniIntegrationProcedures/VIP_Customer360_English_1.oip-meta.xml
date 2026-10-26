@@ -74,10 +74,10 @@
   &quot;remoteMethod&quot; : &quot;newEntry&quot;,
   &quot;remoteOptions&quot; : { },
   &quot;additionalInput&quot; : {
-    &quot;loggingLevel&quot; : &quot;INFO&quot;,
+    &quot;loggingLevel&quot; : &quot;DEBUG&quot;,
     &quot;message&quot; : &quot;VIP_Customer360 requested&quot;,
     &quot;recordId&quot; : &quot;%AccountId%&quot;,
-    &quot;saveLog&quot; : true
+    &quot;saveLog&quot; : false
   },
   &quot;sendOnlyAdditionalInput&quot; : true,
   &quot;additionalChainableResponse&quot; : { }

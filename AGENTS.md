@@ -6,7 +6,7 @@ You are assisting in building **Nexus Core**, an enterprise-grade, modular Sales
 
 ## 1. Scratch Org Bootstrap & Verification Recipe
 
-When executing tasks or testing deployments in an ephemeral scratch org, use the bootstrap script (Phases 1-4, headless profile):
+When executing tasks or testing deployments in an ephemeral scratch org, use the bootstrap script (Phases 1-4, headless profile; add `--profile full` for Phase 5+ modules such as OmniStudio, which also uses `config/project-scratch-def-full.json`):
 
 ```bash
 scripts/org-init/setup-scratch-headless.sh --alias nexus-dev --dev-hub DevHubGS --days 1

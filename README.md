@@ -148,16 +148,16 @@ sf org open -o nexus-full -p lightning/app/c__Nexus_Customer_360     # open any 
 plus `Customer360Service` (Apex remote action). The FlexCard runs no SOQL: all data comes through the Integration
 Procedure, and the Data Mapper enforces field-level security.
 
-| Component (`modules/20-omnistudio/customer-360`)                 | Purpose                                                                                                                   |
-| ---------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
-| `DMCustomer360Extract` (Extract Data Mapper)                     | Account, up to 50 open opportunities and 50 open cases for an `AccountId`                                                 |
-| `VIP_Customer360` (Integration Procedure, input `AccountId`)     | `LogRequest` (Nebula `CallableLogger`) → `GetCustomerData` → `SummarizeCustomer` → `ReturnCustomer360`                    |
-| `Customer360Service` (`System.Callable`, action `summarize`)     | Health: **At Risk** (credit hold, escalations, SLA violations), **Watch** (high priority, pending discounts), **Healthy** |
-| `FC_CustomerHeader` (FlexCard) on **Nexus Account Customer 360** | Account header with health and key indicators (`runtime_omnistudio:flexcard`, `flexcardName`)                             |
-| `PS_Customer360_User`, **Nexus Customer 360** app                | App, Apex access for the remote actions; data access stays with the user's other permission sets                          |
+| Component (`modules/20-omnistudio/customer-360`)                 | Purpose                                                                                                                                                               |
+| ---------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `DMCustomer360Extract` (Extract Data Mapper)                     | Account, up to 50 open opportunities and 50 open cases for an `AccountId`                                                                                             |
+| `VIP_Customer360` (Integration Procedure, input `AccountId`)     | `LogRequest` (Nebula `CallableLogger`, DEBUG, unsaved) → `GetCustomerData` → `SummarizeCustomer` → `ReturnCustomer360`                                                |
+| `Customer360Service` (`System.Callable`, action `summarize`)     | Health: **At Risk** (credit hold, escalations, SLA violations), **Watch** (high priority, pending discounts), **Incomplete** (credit status not visible), **Healthy** |
+| `FC_CustomerHeader` (FlexCard) on **Nexus Account Customer 360** | Account header with health and key indicators (`runtime_omnistudio:flexcard`, `flexcardName`)                                                                         |
+| `PS_Customer360_User`, **Nexus Customer 360** app                | App, Apex access for the remote actions; data access stays with the user's other permission sets                                                                      |
 
 Response shape: `{account: {...}, opportunities: [...], cases: [...], summary: {health, healthVariant, healthReasons,
-creditHold, openOpportunities, openPipelineAmount, pendingDiscountApprovals, openCases, highPriorityCases,
+complete, creditHold, openOpportunities, openPipelineAmount, pendingDiscountApprovals, openCases, highPriorityCases,
 escalatedCases, slaViolations}}`.
 
 ### Click-through checklist (runtime verification, KI-025)
@@ -174,8 +174,11 @@ Procedure cannot be executed and a FlexCard cannot be rendered from the CLI. In 
 3. **Nexus Customer 360** app → open each seeded account and check the header renders. Expected health:
    Globex Retail Group **At Risk**, Acme Global Manufacturing **Watch** (one High-priority case), Apex Healthcare
    Solutions and Nexus Global Channel Partners **Healthy**.
-4. **Logger Console → Log Entries**: an INFO entry "VIP_Customer360 requested" related to the account.
-5. As a user without `PS_Customer360_User`, the header shows an error instead of data (no Apex access).
+4. **Logger Console → Log Entries**: a normal view saves no log entry. `LogRequest` adds a DEBUG entry that is
+   saved only when a later step fails and saves the log (e.g. `Customer360Service` logging an error).
+5. As a user without `PS_Customer360_User`, the header shows an error instead of data (no Apex access). With
+   `PS_Customer360_User` but without sales or service permission sets, health still reflects the credit hold and
+   cases (the permission set grants read access to every field the health rules use).
 
 Report anything that differs; fixes go in a follow-up.
 

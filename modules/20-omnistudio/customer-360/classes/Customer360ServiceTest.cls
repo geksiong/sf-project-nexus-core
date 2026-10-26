@@ -74,7 +74,7 @@ private class Customer360ServiceTest {
     static void highPriorityCasesAndPendingDiscountsNeedWatching() {
         Map<String, Object> output = call(
             new Map<String, Object>{
-                'Account' => new Map<String, Object>(),
+                'Account' => new Map<String, Object>{ 'Credit_Hold__c' => false },
                 'Opportunities' => opp(9000, 'Pending'),
                 'Cases' => caseRecord('Working', 'High', null)
             }
@@ -90,12 +90,52 @@ private class Customer360ServiceTest {
     @IsTest
     static void noRelatedRecordsIsHealthy() {
         Map<String, Object> output = call(
-            new Map<String, Object>{ 'Account' => new Map<String, Object>{ 'Name' => 'New Co' } }
+            new Map<String, Object>{
+                'Account' => new Map<String, Object>{ 'Name' => 'New Co', 'Credit_Hold__c' => false }
+            }
         );
 
         Assert.areEqual(Customer360Service.HEALTH_HEALTHY, output.get('health'));
+        Assert.areEqual(true, output.get('complete'));
         Assert.areEqual(0, output.get('openCases'));
         Assert.areEqual(0, output.get('openPipelineAmount'));
+    }
+
+    /** @description Data the viewer cannot see (omitted by the FLS-enforcing Data Mapper) is never "Healthy". */
+    @IsTest
+    static void invisibleCreditStatusIsIncompleteNotHealthy() {
+        Map<String, Object> hidden = call(
+            new Map<String, Object>{ 'Account' => new Map<String, Object>{ 'Name' => 'Globex' } }
+        );
+        Assert.areEqual(Customer360Service.HEALTH_INCOMPLETE, hidden.get('health'));
+        Assert.areEqual('warning', hidden.get('healthVariant'));
+        Assert.areEqual(false, hidden.get('complete'));
+        Assert.areEqual('Credit status not visible to you', hidden.get('healthReasons'));
+
+        Map<String, Object> noAccount = call(new Map<String, Object>());
+        Assert.areEqual(Customer360Service.HEALTH_INCOMPLETE, noAccount.get('health'));
+        Assert.areEqual('Account not visible to you', noAccount.get('healthReasons'));
+
+        Map<String, Object> hiddenButWatch = call(
+            new Map<String, Object>{
+                'Account' => new Map<String, Object>{ 'Name' => 'Globex' },
+                'Cases' => caseRecord('New', 'High', null)
+            }
+        );
+        Assert.areEqual(
+            Customer360Service.HEALTH_WATCH,
+            hiddenButWatch.get('health'),
+            'A real watch item still decides'
+        );
+        Assert.isTrue(((String) hiddenButWatch.get('healthReasons')).contains('Credit status not visible'));
+
+        Map<String, Object> hiddenButRisk = call(
+            new Map<String, Object>{
+                'Account' => new Map<String, Object>(),
+                'Cases' => caseRecord('Escalated', 'Low', null)
+            }
+        );
+        Assert.areEqual(Customer360Service.HEALTH_AT_RISK, hiddenButRisk.get('health'));
     }
 
     @IsTest
@@ -115,9 +155,9 @@ private class Customer360ServiceTest {
 
         Object direct = new Customer360Service().call(Customer360Service.ACTION_SUMMARIZE, null);
         Assert.areEqual(
-            Customer360Service.HEALTH_HEALTHY,
+            Customer360Service.HEALTH_INCOMPLETE,
             ((Map<String, Object>) direct).get('health'),
-            'Input map optional'
+            'Input map optional; no account data is incomplete'
         );
     }
 }
