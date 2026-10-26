@@ -9,7 +9,8 @@
           "checkOutDate": "{!$attrs.outputValues.payload.checkOutDate}",
           "nights": "{!$attrs.outputValues.payload.nights}",
           "suiteCount": "{!$attrs.outputValues.payload.suiteCount}",
-          "suites": "{!$attrs.outputValues.payload.suites}"
+          "suites": "{!$attrs.outputValues.payload.suites}",
+          "currencyCode": "{!$attrs.outputValues.payload.currencyCode}"
         }
       }
     }

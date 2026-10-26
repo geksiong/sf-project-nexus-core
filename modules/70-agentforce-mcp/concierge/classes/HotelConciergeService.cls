@@ -9,7 +9,8 @@
  *  applyBookingRules (before insert/update) for every Confirmed booking that is new or changes its suite, dates,
  *                                           guests or status: the suite must be active and large enough, no other
  *                                           confirmed booking (anyone's, or another in the same save) may overlap,
- *                                           and Total_Price__c = nightly rate x nights.
+ *                                           and Total_Price__c = nightly rate x nights. The suites are locked first
+ *                                           (FOR UPDATE), so concurrent bookings of one suite cannot both pass.
  *
  * Bookings are private, but availability and pricing must not depend on who asks or saves (a guest, an agent, an
  * integration), so the rules read through HotelBookingFactsSelector (system mode).
@@ -79,6 +80,7 @@ public with sharing class HotelConciergeService {
             payload.checkInDate = req.checkInDate;
             payload.checkOutDate = req.checkInDate.addDays(nights);
             payload.nights = nights;
+            payload.currencyCode = UserInfo.getDefaultCurrency();
             payload.suites = new List<HotelSuiteOffer>();
             for (Hotel_Suite__c suite : suites) {
                 if (payload.suites.size() == MAX_OFFERS) {
@@ -332,6 +334,7 @@ public with sharing class HotelConciergeService {
         confirmation.checkInDate = booking.Check_In__c;
         confirmation.checkOutDate = booking.Check_Out__c;
         confirmation.totalPrice = booking.Total_Price__c;
+        confirmation.currencyCode = UserInfo.getDefaultCurrency();
         return confirmation;
     }
 

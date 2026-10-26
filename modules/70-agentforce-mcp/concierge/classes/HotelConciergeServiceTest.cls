@@ -76,6 +76,7 @@ private class HotelConciergeServiceTest {
         Assert.areEqual(1200, payload.suites[0].totalPrice, '3 nights x 400');
         Assert.areEqual(CHECK_IN.addDays(3), payload.checkOutDate);
         Assert.areEqual('singapore', payload.city, 'City trimmed');
+        Assert.areEqual(UserInfo.getDefaultCurrency(), payload.currencyCode, 'Prices carry the org currency');
     }
 
     @IsTest

@@ -22,6 +22,10 @@
           "title": "Nights",
           "lightning:type": "lightning__integerType"
         },
+        "currencyCode": {
+          "title": "Currency",
+          "lightning:type": "lightning__textType"
+        },
         "suiteCount": {
           "title": "Suites found",
           "lightning:type": "lightning__integerType"

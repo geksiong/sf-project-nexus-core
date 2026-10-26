@@ -25,4 +25,7 @@ global class HotelBookingConfirmation {
     @AuraEnabled
     @InvocableVariable(label='Total Price')
     global Decimal totalPrice;
+    @AuraEnabled
+    @InvocableVariable(label='Currency Code' description='ISO currency of the total price.')
+    global String currencyCode;
 }

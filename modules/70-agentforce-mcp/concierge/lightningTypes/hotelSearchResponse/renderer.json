@@ -9,7 +9,8 @@
           "checkOutDate": "{!$attrs.checkOutDate}",
           "nights": "{!$attrs.nights}",
           "suiteCount": "{!$attrs.suiteCount}",
-          "suites": "{!$attrs.suites}"
+          "suites": "{!$attrs.suites}",
+          "currencyCode": "{!$attrs.currencyCode}"
         }
       }
     }

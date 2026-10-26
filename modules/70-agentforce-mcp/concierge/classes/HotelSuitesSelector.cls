@@ -14,7 +14,10 @@ public virtual with sharing class HotelSuitesSelector {
         return instance;
     }
 
-    /** @description Active suites in the given cities (case-insensitive), cheapest first. */
+    /**
+     * @description Active suites in the given cities (case-insensitive), cheapest first. The limit covers the whole
+     * catalogue of a few cities; callers cap the offers per request (HotelConciergeService.MAX_OFFERS).
+     */
     public virtual List<Hotel_Suite__c> selectActiveByCities(Set<String> cities) {
         if (cities == null || cities.isEmpty()) {
             return new List<Hotel_Suite__c>();
@@ -25,7 +28,7 @@ public virtual with sharing class HotelSuitesSelector {
             WHERE Is_Active__c = TRUE AND City__c IN :cities
             WITH USER_MODE
             ORDER BY Nightly_Rate__c ASC, Name ASC
-            LIMIT 200
+            LIMIT 2000
         ];
     }
 }
