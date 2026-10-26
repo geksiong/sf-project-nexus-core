@@ -1,0 +1,17 @@
+{
+  "renderer": {
+    "componentOverrides": {
+      "$": {
+        "definition": "@widget/c/hotelCard",
+        "attributes": {
+          "city": "{!$attrs.outputValues.payload.city}",
+          "checkInDate": "{!$attrs.outputValues.payload.checkInDate}",
+          "checkOutDate": "{!$attrs.outputValues.payload.checkOutDate}",
+          "nights": "{!$attrs.outputValues.payload.nights}",
+          "suiteCount": "{!$attrs.outputValues.payload.suiteCount}",
+          "suites": "{!$attrs.outputValues.payload.suites}"
+        }
+      }
+    }
+  }
+}

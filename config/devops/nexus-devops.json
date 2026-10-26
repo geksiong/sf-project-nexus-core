@@ -1,5 +1,5 @@
 {
-  "$comment": "Single source of truth for Nexus Core DevOps gates (scripts/devops, scripts/org-init, CI). activeModules deploy to the headless scratch org (CI); fullProfileModules need the full org shape (setup-scratch-headless.sh --profile full) and are covered by the static gates only.",
+  "$comment": "Single source of truth for Nexus Core DevOps gates (scripts/devops, scripts/org-init, CI). activeModules deploy to the headless scratch org (CI); <profile>ProfileModules add modules that need another org shape (setup-scratch-headless.sh --profile full|agentforce: full = OmniStudio, Experience Cloud, CRM Analytics, React on DevHubGS; agentforce = HXL widgets, Agentforce, MCP on an Agentforce-entitled Dev Hub) and are covered by the static gates in every case.",
   "activeModules": ["modules/00-foundation", "modules/10-core-domain"],
   "fullProfileModules": [
     "modules/20-omnistudio",
@@ -7,6 +7,7 @@
     "modules/40-crm-analytics",
     "modules/50-multi-framework"
   ],
+  "agentforceProfileModules": ["modules/60-hxl-widgets", "modules/70-agentforce-mcp"],
   "deployStages": {
     "$comment": "Full-profile modules deploy in these stages (directory names, or paths relative to the module), then whole. OmniStudio validates references at deploy time; a site's guest profile and guest sharing rules exist only once the site does.",
     "modules/20-omnistudio": [["classes", "omniDataTransforms"], ["omniIntegrationProcedures"]],
@@ -30,9 +31,11 @@
     ]
   },
   "deployApiVersions": {
-    "$comment": "Modules whose metadata needs a newer API than sfdx-project.json sourceApiVersion (UIBundle, WaveTemplateBundle with recipe R3 assets: 66.0+). They deploy from a manifest generated at this version; drift retrieves at the highest version in use.",
+    "$comment": "Modules whose metadata needs a newer API than sfdx-project.json sourceApiVersion (UIBundle, WaveTemplateBundle with recipe R3 assets: 66.0+; UiWidgetBundle, LightningTypeBundle, McpServerDefinition (HXL beta): 67.0+). They deploy from a manifest generated at this version; drift retrieves at the highest version in use.",
     "modules/50-multi-framework": "66.0",
-    "modules/40-crm-analytics": "66.0"
+    "modules/40-crm-analytics": "66.0",
+    "modules/60-hxl-widgets": "67.0",
+    "modules/70-agentforce-mcp": "67.0"
   },
   "publishSites": ["Nexus Hospitality", "Nexus Partner Central"],
   "analyticsTemplates": ["Nexus_Executive_Analytics"],
@@ -51,11 +54,5 @@
       "permissionSets": ["LoggerAdmin", "LoggerLogViewer", "LoggerEndUser", "LoggerLogCreator"]
     }
   },
-  "allowlist": [
-    {
-      "check": "clt-renderer-binding",
-      "item": "modules/70-agentforce-mcp/custom-lightning-types/hotelInfoResult/renderer.json",
-      "reason": "Phase 8 scaffolding: renderer binds $payload.hotelDetails but the result schema exposes outputValues. Resolve when the Agentforce contract is implemented."
-    }
-  ]
+  "allowlist": []
 }

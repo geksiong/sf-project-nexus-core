@@ -3,7 +3,7 @@
 # Runs every Nexus Core Apex test class in the active modules and enforces the coverage gate.
 # RunLocalTests is avoided on purpose: it would also run ~1,300 tests from the unlocked Nebula Logger package.
 #
-# Usage: scripts/devops/run-apex-tests.sh --target-org <alias> [--profile headless|full] [--output-dir test-results]
+# Usage: scripts/devops/run-apex-tests.sh --target-org <alias> [--profile headless|full|agentforce] [--output-dir test-results]
 #                                        [--min-coverage 85]
 set -euo pipefail
 
@@ -23,7 +23,7 @@ done
 [[ -n "$TARGET_ORG" ]] || { echo "--target-org is required" >&2; exit 1; }
 
 cd "$(dirname "$0")/../.."
-mapfile -t MODULES < <(jq -r --arg p "$PROFILE" '(.activeModules + (if $p == "full" then .fullProfileModules // [] else [] end))[]' config/devops/nexus-devops.json)
+mapfile -t MODULES < <(jq -r --arg p "$PROFILE" '(.activeModules + (.[$p + "ProfileModules"] // []))[]' config/devops/nexus-devops.json)
 TEST_ARGS=()
 while IFS= read -r test_class; do
     TEST_ARGS+=(-n "$test_class")

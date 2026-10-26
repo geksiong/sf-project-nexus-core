@@ -1,0 +1,136 @@
+{
+  "type": "lightning__agentforceWidget",
+  "contentBody": {
+    "widgetBody": {
+      "definition": "tile/widget",
+      "children": [
+        {
+          "definition": "tile/column",
+          "attributes": {
+            "align": "stretch",
+            "gap": "md"
+          },
+          "children": [
+            {
+              "definition": "tile/text",
+              "attributes": {
+                "text": "Suites in {!$attrs.city}",
+                "variant": "h3"
+              }
+            },
+            {
+              "definition": "tile/text",
+              "attributes": {
+                "text": "{!$attrs.checkInDate} to {!$attrs.checkOutDate} ({!$attrs.nights} nights): {!$attrs.suiteCount} available",
+                "variant": "caption"
+              }
+            },
+            {
+              "definition": "tile/callout",
+              "meta": {
+                "if": "{!$attrs.suiteCount == 0}"
+              },
+              "attributes": {
+                "title": "No suites available",
+                "description": "Try other dates or another city.",
+                "variant": "info"
+              }
+            },
+            {
+              "definition": "tile/container",
+              "meta": {
+                "forEach": "{!$attrs.suites}",
+                "forItem": "$suite"
+              },
+              "attributes": {
+                "variant": "default"
+              },
+              "children": [
+                {
+                  "definition": "tile/row",
+                  "attributes": {
+                    "gap": "md",
+                    "justify": "between",
+                    "align": "center"
+                  },
+                  "children": [
+                    {
+                      "definition": "tile/column",
+                      "attributes": {
+                        "align": "start",
+                        "gap": "xs"
+                      },
+                      "children": [
+                        {
+                          "definition": "tile/text",
+                          "attributes": {
+                            "text": "{!$suite.suiteName}",
+                            "variant": "h4"
+                          }
+                        },
+                        {
+                          "definition": "tile/text",
+                          "attributes": {
+                            "text": "{!$suite.hotelName}, sleeps {!$suite.maxGuests}",
+                            "variant": "caption"
+                          }
+                        },
+                        {
+                          "definition": "tile/badge",
+                          "attributes": {
+                            "label": "{!$suite.roomTier}",
+                            "variant": "info"
+                          }
+                        }
+                      ]
+                    },
+                    {
+                      "definition": "tile/column",
+                      "attributes": {
+                        "align": "end",
+                        "gap": "xs"
+                      },
+                      "children": [
+                        {
+                          "definition": "tile/text",
+                          "attributes": {
+                            "text": "USD {!$suite.nightlyRate} / night",
+                            "weight": "bold"
+                          }
+                        },
+                        {
+                          "definition": "tile/text",
+                          "attributes": {
+                            "text": "USD {!$suite.totalPrice} total",
+                            "variant": "caption"
+                          }
+                        },
+                        {
+                          "definition": "tile/button",
+                          "attributes": {
+                            "label": "Book",
+                            "variant": "primary",
+                            "actions": {
+                              "click": [
+                                {
+                                  "definition": "action/sendMessage",
+                                  "attributes": {
+                                    "content": "Book the {!$suite.suiteName} (suite {!$suite.suiteId}) at {!$suite.hotelName} from {!$attrs.checkInDate} for {!$attrs.nights} nights."
+                                  }
+                                }
+                              ]
+                            }
+                          }
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  }
+}

@@ -23,7 +23,7 @@ Nexus Core is a modular, enterprise-grade Salesforce reference architecture demo
 6. **Demo App 6 (Experience Cloud Aura):** B2B Partner Central & Deal Registration (Aura runtime, Partner Community licensing, Deal Registration routing).
 7. **Demo App 7 (CRM Analytics):** Executive Analytics Intelligence (Data Prep recipe, pipeline dashboard, decoupled `template-info.json` app template).
 8. **Demo App 8 (Multi-Framework):** React Account & Asset Explorer (`UIBundle`, React 19, UI API GraphQL, SLDS styling hooks).
-9. **Demo App 9 (Agentforce & MCP):** Autonomous Hotel Concierge & Booking Service (Invocable Apex, CLTs, HXL Widgets, MCP).
+9. **Demo App 9 (Agentforce & MCP):** Hotel Concierge & Booking Service (Agent Script employee agent, invocable Apex, Custom Lightning Types, HXL `hotelCard` widget, hosted MCP server).
 
 ## Phased Delivery Roadmap
 
@@ -269,6 +269,47 @@ recipe (`Nexus_Pipeline` returns pipeline by stage through SAQL); drift is clean
 3. **Analytics:** `sf org open -o <alias> -p lightning/n/standard-AnalyticsStudio` → **Nexus Executive Analytics** →
    **Nexus Pipeline Overview**. Expect the two number tiles, the stage bar chart and the industry donut; selecting a
    stage bar filters the other widgets.
+
+## Agentforce, MCP & HXL: Hotel Concierge (Phase 8)
+
+Agentforce profile, on a Dev Hub entitled to Agentforce scratch orgs ([ADR 0007](docs/adr/0007-agentforce-mcp-hxl.md)):
+
+```bash
+scripts/org-init/setup-scratch-headless.sh --alias nexus-ai --dev-hub DevHubAI --days 7 --profile agentforce
+```
+
+It deploys modules 00 and 10, then `60-hxl-widgets` and `70-agentforce-mcp` at API 67.0 (HXL beta), seeds seven suites
+in Singapore, London and San Francisco (the Harbour View Suite is booked for the first three nights of next week),
+publishes and activates the agent, and activates the MCP server.
+
+| Component                                                                                            | Purpose                                                                                                                                                        |
+| ---------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `Hotel_Suite__c` (public read only), `Suite_Booking__c` (private, `NXB-#####`)                       | Suite catalogue and bookings                                                                                                                                   |
+| `HotelSearchAction`, `BookHotelSuiteAction` (global, result envelope)                                | Invocable actions shared by the agent and the MCP tools; payloads `HotelSearchPayload` / `HotelSuiteOffer` / `HotelBookingConfirmation`                        |
+| `HotelConciergeService`, `HotelSuitesSelector`, `SuiteBookingsSelector`, `HotelBookingFactsSelector` | Search (user mode) and booking; the `Suite_Booking__c` trigger rejects overlapping confirmed bookings across all users (system-mode facts) and prices the stay |
+| `uiWidgets/hotelCard` (module 60)                                                                    | HXL widget: the searched stay and one card per suite with a **Book** button (`action/sendMessage`)                                                             |
+| `lightningTypes/hotelSearchResponse`                                                                 | Agentforce output rendering: `HotelSearchPayload` shown as `hotelCard`                                                                                         |
+| `lightningTypes/hotelSearchOutputValues`, `hotelSearchResult`                                        | MCP payload and result wrapper; the wrapper renders `hotelCard` in MCP clients                                                                                 |
+| `mcpServerDefinitions/NexusHotelConcierge`                                                           | Hosted MCP server: tools `searchHotels` (with the `hotelSearchUi` resource) and `bookHotelSuite`                                                               |
+| `aiAuthoringBundles/Nexus_Hotel_Concierge` (Agent Script)                                            | Employee agent: router plus the Hotel Concierge subagent with the two actions; booking asks for confirmation                                                   |
+| `PS_Hotel_Concierge_Guest`                                                                           | Access for agent and MCP users (assigned to the admin)                                                                                                         |
+
+Verified from the CLI on a fresh org: the agent (`sf agent preview`) searched Singapore with the live action, returned
+the structured payload, booked the cheapest suite after confirmation (`NXB-…`, priced 2 x rate) and refused a second
+booking of the same suite for the same nights. The MCP server is active with both tools (API Catalog); no MCP
+client has called it yet.
+
+### Click-through checklist (runtime verification, KI-040)
+
+1. **Widget in Agentforce:** in Lightning, open the Agentforce panel, choose **Nexus Hotel Concierge** and ask "Find a
+   suite in Singapore next Monday for 2 nights". Expect the **hotelCard** widget: the stay, the suites cheapest first
+   with tier badges and prices, and no Harbour View Suite (booked). Press **Book** on a suite: the agent asks for
+   confirmation and returns a confirmation code.
+2. **MCP client:** create an External Client App with the `mcp_api` and `refresh_token` scopes and the client's
+   callback (Claude: `https://claude.ai/api/mcp/auth_callback`), then add a custom connector with the server URL from
+   Setup → MCP Servers → NexusHotelConcierge (printed by the setup script; for scratch orgs it has the form
+   `https://api.salesforce.com/platform/mcp/v1/d/<my-domain>/scratch/custom/NexusHotelConcierge`). Ask it to search
+   hotels: the result renders as `hotelCard`.
 
 ## Quality Gates & CI (Phase 2)
 

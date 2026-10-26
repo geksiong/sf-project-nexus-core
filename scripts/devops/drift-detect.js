@@ -11,7 +11,7 @@
  * server adds or omits), so XML is compared semantically: every element in source must exist in the
  * org with the same value. Types listed in NOISY_TYPES are reported as warnings only.
  *
- * Usage: node scripts/devops/drift-detect.js --target-org <alias> [--profile headless|full] [--report drift-report.md]
+ * Usage: node scripts/devops/drift-detect.js --target-org <alias> [--profile headless|full|agentforce] [--report drift-report.md]
  * Exit codes: 0 no drift, 1 drift found, 2 usage / retrieval error.
  */
 const fs = require('node:fs');

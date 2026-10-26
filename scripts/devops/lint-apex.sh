@@ -4,6 +4,6 @@
 set -euo pipefail
 cd "$(dirname "$0")/../.."
 ARGS=()
-while IFS= read -r module; do ARGS+=(--workspace "$module"); done < <(jq -r '(.activeModules + (.fullProfileModules // []))[]' config/devops/nexus-devops.json)
+while IFS= read -r module; do ARGS+=(--workspace "$module"); done < <(jq -r '(.activeModules + [to_entries[] | select(.key | endswith("ProfileModules")) | .value[]]) | unique[]' config/devops/nexus-devops.json)
 exec sf code-analyzer run "${ARGS[@]}" --rule-selector pmd:Recommended --rule-selector pmd:Custom \
     --severity-threshold 2 --view table "$@"

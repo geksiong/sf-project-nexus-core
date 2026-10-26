@@ -9,8 +9,6 @@ package.xml
 **/tsconfig.json
 **/*.ts
 
-# Later-phase scaffolding that does not deploy yet. Remove each entry when its phase is implemented.
-
 # Phase 7 UI bundles: deploy only the built app (dist) and its metadata
 **/uiBundles/*/node_modules/**
 **/uiBundles/*/src/**

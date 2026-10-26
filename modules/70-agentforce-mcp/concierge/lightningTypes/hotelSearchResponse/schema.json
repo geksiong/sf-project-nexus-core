@@ -1,0 +1,5 @@
+{
+  "title": "Hotel search response",
+  "description": "Search Hotel Suites payload (HotelSearchPayload), rendered in Agentforce as the hotelCard widget.",
+  "lightning:type": "@apexClassType/c__HotelSearchPayload"
+}

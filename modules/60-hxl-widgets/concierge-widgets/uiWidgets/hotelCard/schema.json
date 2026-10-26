@@ -1,0 +1,73 @@
+{
+  "title": "Hotel offers",
+  "description": "A searched stay and the suites available for it.",
+  "type": "object",
+  "properties": {
+    "attributes": {
+      "lightning:type": "lightning__objectType",
+      "properties": {
+        "city": {
+          "title": "City",
+          "lightning:type": "lightning__textType"
+        },
+        "checkInDate": {
+          "title": "Check-in",
+          "lightning:type": "lightning__dateType"
+        },
+        "checkOutDate": {
+          "title": "Check-out",
+          "lightning:type": "lightning__dateType"
+        },
+        "nights": {
+          "title": "Nights",
+          "lightning:type": "lightning__integerType"
+        },
+        "suiteCount": {
+          "title": "Suites found",
+          "lightning:type": "lightning__integerType"
+        },
+        "suites": {
+          "title": "Suites",
+          "lightning:type": "lightning__listType",
+          "items": {
+            "lightning:type": "lightning__objectType",
+            "properties": {
+              "suiteId": {
+                "title": "Suite Id",
+                "lightning:type": "lightning__textType"
+              },
+              "suiteName": {
+                "title": "Suite",
+                "lightning:type": "lightning__textType"
+              },
+              "hotelName": {
+                "title": "Hotel",
+                "lightning:type": "lightning__textType"
+              },
+              "city": {
+                "title": "City",
+                "lightning:type": "lightning__textType"
+              },
+              "roomTier": {
+                "title": "Room tier",
+                "lightning:type": "lightning__textType"
+              },
+              "nightlyRate": {
+                "title": "Nightly rate",
+                "lightning:type": "lightning__numberType"
+              },
+              "totalPrice": {
+                "title": "Total price",
+                "lightning:type": "lightning__numberType"
+              },
+              "maxGuests": {
+                "title": "Sleeps",
+                "lightning:type": "lightning__integerType"
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
