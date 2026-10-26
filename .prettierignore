@@ -10,3 +10,7 @@ package-lock.json
 docs/
 # PMD rule fixtures: line numbers are asserted by config/pmd/fixtures/expected.json
 config/pmd/fixtures/
+# UI bundles: build output and the bundle's own lockfile/changelog (the bundle has its own .prettierrc)
+**/uiBundles/*/dist
+**/uiBundles/*/build
+**/uiBundles/*/CHANGELOG.md

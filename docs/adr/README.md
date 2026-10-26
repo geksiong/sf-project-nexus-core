@@ -8,3 +8,4 @@
 | [0003](./0003-dual-scratch-org-strategy.md) | Dual-Scratch Org Strategy (Headless vs Full) | Accepted | 2026-10-22 |
 | [0004](./0004-dual-experience-cloud-runtimes.md) | Dual Experience Cloud Runtimes (LWR vs. Aura Partner Central) | Accepted | 2026-10-22 |
 | [0005](./0005-source-driven-packaging-strategy.md) | Source-Driven Modular Packaging Strategy (Inner vs. Outer Loop) | Accepted | 2026-10-22 |
+| [0006](./0006-analytics-templates-and-ui-bundles.md) | Decoupled Analytics Templates and Multi-Framework UI Bundles | Accepted | 2026-10-26 |

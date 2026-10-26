@@ -21,8 +21,8 @@ Nexus Core is a modular, enterprise-grade Salesforce reference architecture demo
 4. **Demo App 4 (OmniStudio):** Service 360 & Operations Intelligence (VIPs, Data Mappers, FlexCards).
 5. **Demo App 5 (Experience Cloud LWR):** Hospitality & Guest Experience Portal (LWR, headless Light-DOM, CMS Publication Approval).
 6. **Demo App 6 (Experience Cloud Aura):** B2B Partner Central & Deal Registration (Aura runtime, Partner Community licensing, Deal Registration routing).
-7. **Demo App 7 (CRM Analytics):** Executive Analytics Intelligence (Data Prep recipes, predictive churn scores).
-8. **Demo App 8 (Multi-Framework):** React 18+ Account & Asset Explorer (`UIBundle`, LWS, SLDS tokens).
+7. **Demo App 7 (CRM Analytics):** Executive Analytics Intelligence (Data Prep recipe, pipeline dashboard, decoupled `template-info.json` app template).
+8. **Demo App 8 (Multi-Framework):** React Account & Asset Explorer (`UIBundle`, React 19, UI API GraphQL, SLDS styling hooks).
 9. **Demo App 9 (Agentforce & MCP):** Autonomous Hotel Concierge & Booking Service (Invocable Apex, CLTs, HXL Widgets, MCP).
 
 ## Phased Delivery Roadmap
@@ -221,6 +221,54 @@ and blocks a second registration for the same customer. Still to check in a brow
 5. **Partner visibility:** as Tom, open `/partners/s/recordlist/Deal_Registration__c/Default`: Tom sees his own
    registrations only, and the approved registration's **Opportunity** link opens (read only). The registration is
    locked and shows **Reservation Expires On** 90 days out.
+
+## CRM Analytics & Multi-Framework React (Phase 7)
+
+Full profile (`setup-scratch-headless.sh --profile full`), [ADR 0006](docs/adr/0006-analytics-templates-and-ui-bundles.md).
+
+### Demo App 7: Executive Analytics (`modules/40-crm-analytics`)
+
+| Component                                                        | Purpose                                                                                                       |
+| ---------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
+| `waveTemplates/Nexus_Executive_Analytics` (`WaveTemplateBundle`) | Decoupled app template: `template-info.json` lists the recipe, dataset and dashboard the app is created from  |
+| `recipes/Nexus_Pipeline_Recipe.json` (Data Prep, R3)             | Loads Opportunity and Account (connected objects, `SFDC_LOCAL`), looks up the account, saves `Nexus_Pipeline` |
+| `dashboards/Nexus_Pipeline_Overview.json`                        | Open pipeline and Closed Won tiles, pipeline by stage, open pipeline by industry (SAQL steps)                 |
+
+Only the template is source. The setup script deploys it and then creates the **Nexus Executive Analytics** app from
+it (`sf analytics app create --templatename`, listed in `nexus-devops.json` `analyticsTemplates`), which syncs the
+connected objects and runs the recipe. The admin gets **CRM Analytics Plus Admin** (`EinsteinAnalyticsPlusAdmin`).
+
+To change the analytics: edit the app in Analytics Studio, recreate the template from it
+(`sf analytics template create -f <folderId> -r <recipeId>`), retrieve `WaveTemplateBundle:Nexus_Executive_Analytics`
+at API 66.0, and check the diff for org Ids and usernames (KI-039).
+
+### Demo App 8: Account & Asset Explorer (`modules/50-multi-framework`)
+
+| Component                                                    | Purpose                                                                                                           |
+| ------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------- |
+| `uiBundles/NexusAssetExplorer` (`UIBundle`, React 19 + Vite) | Account search (debounced) and an account panel: asset stats, installed base value, open cases, asset table       |
+| `src/api/explorerApi.ts`                                     | Two UI API GraphQL queries through `@salesforce/platform-sdk`; results respect the user's object and field access |
+| `src/styles/slds-tokens.css`                                 | `.nx-*` classes on SLDS global styling hooks (`--slds-g-*`) with fallbacks                                        |
+| `PS_Asset_Explorer_User`                                     | Read on Account, Asset, Case and Product2, and asset field access                                                 |
+| `scripts/org-init/seed-assets.apex`                          | Three products and six installed assets for Acme, Globex and Apex Healthcare (idempotent)                         |
+
+The bundle is built before deployment (`npm run test:ui-bundles` runs Vitest, the type check and the Vite build; the
+setup script builds with `--skip-tests`). Only `dist/` and the bundle metadata deploy (`.forceignore`), from a
+manifest at API 66.0 (`deployApiVersions`, KI-038).
+
+### Click-through checklist (runtime verification, KI-037)
+
+Verified from the CLI: both GraphQL queries return data as the admin; the app created from the template ran the
+recipe (`Nexus_Pipeline` returns pipeline by stage through SAQL); drift is clean. Still to check in a browser:
+
+1. **Explorer:** App Launcher → **Nexus Asset Explorer**. Expect the account list; type "Glo" to filter it to the
+   three accounts with "Glo" in the name. Select **Acme Global Manufacturing**: three assets, the installed base
+   value, and two open cases.
+2. **Styling and LWS:** the explorer follows the org's SLDS theme (fonts, borders, brand colour on the selected
+   account) and the browser console shows no Lightning Web Security violations.
+3. **Analytics:** `sf org open -o <alias> -p lightning/n/standard-AnalyticsStudio` → **Nexus Executive Analytics** →
+   **Nexus Pipeline Overview**. Expect the two number tiles, the stage bar chart and the industry donut; selecting a
+   stage bar filters the other widgets.
 
 ## Quality Gates & CI (Phase 2)
 

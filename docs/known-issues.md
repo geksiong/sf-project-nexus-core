@@ -42,6 +42,9 @@ _Constraint_ = platform limitation with a workaround in place; _Verify_ = suspec
 | KI-033 | Experience   | Constraint | Site bundles embed regenerated content Ids (drift is advisory)           |
 | KI-034 | Experience   | Constraint | Standard external profiles cannot create users; custom profile perms ignored |
 | KI-036 | Experience   | Constraint | Guest Apex responses are CDN-cached: unpublished content can linger      |
+| KI-037 | Analytics/UI | Verify     | Phase 7 dashboard and React explorer not exercised in a browser          |
+| KI-038 | DevOps       | Constraint | UIBundle and WaveTemplateBundle deploy only at API 66.0 (manifest deploy) |
+| KI-039 | Analytics    | Constraint | The analytics app is created from the template, not deployed             |
 
 ---
 
@@ -293,6 +296,8 @@ _Constraint_ = platform limitation with a workaround in place; _Verify_ = suspec
   `__NEXUS_SITE_EMAIL__`, replaced at deploy time from environment variables (`sfdx-project.json` `replacements`; the
   setup script exports them, drift detection defaults them to the target org's admin). A new sender address only
   takes effect after email verification, so the org keeps its own value and drift ignores `emailSenderAddress`.
+  The pending address (`newSenderAddress`) is the admin's own email: drift ignores it too, and it must be removed
+  from any re-retrieved `Network` file.
 - **Impact:** any other deploy of module 30 (CI, sandbox) must export both variables first.
 
 ### KI-032 Retrieved site bundles can contain properties the deploy schema rejects — _Constraint_
@@ -322,3 +327,31 @@ _Constraint_ = platform limitation with a workaround in place; _Verify_ = suspec
   `cacheable=true`, so guest responses can be served from the CDN. An article that is retired (or a draft published
   by mistake and then reverted) can stay visible to guests until the cached response expires.
 - **Resolution (if needed):** turn off Apex CDN caching for Nexus Hospitality, or accept the delay for public content.
+
+## CRM Analytics & Multi-Framework (Phase 7)
+
+### KI-037 Phase 7 dashboard and React explorer not exercised in a browser — _Verify_
+
+- **What happens:** the explorer's two GraphQL queries were run against the org as the admin, the analytics app was
+  created from the template and its dataset queried with SAQL, and the React app is covered by Vitest. Nobody has
+  opened the explorer in Lightning (rendering, SLDS styling hooks, Lightning Web Security) or viewed the dashboard
+  (widget layout, faceting).
+- **Resolution:** run the README "Click-through checklist" (Phase 7).
+
+### KI-038 UIBundle and WaveTemplateBundle deploy only at API 66.0 — _Constraint_
+
+- **What happens:** at the project's `sourceApiVersion` (62.0) a `UIBundle` deploy fails with "Not available for
+  deploy for this API version", and `--api-version` alone does not help because the generated package.xml keeps the
+  source version. Modules 40 and 50 are listed in `deployApiVersions`; the setup script deploys them from a manifest
+  generated at 66.0 and drift detection retrieves at the highest version in use.
+- **Resolution (later):** raise `sourceApiVersion` for the whole project once the other modules are verified at 66.0.
+
+### KI-039 The analytics app is created from the template, not deployed — _Constraint_
+
+- **What happens:** source holds only the `WaveTemplateBundle`; the app, dataset, recipe and dashboard are created
+  in each org by `sf analytics app create`. Consequences: drift detection compares the template, not the app; an
+  edit made in Analytics Studio is lost on the next org unless the template is recreated and retrieved (README,
+  Phase 7); the setup script skips the app when a folder with its name exists, so a changed template needs the app
+  deleted (or `sf analytics app update`) in an existing org. A retrieved template must be checked for org Ids and
+  usernames before commit; the current one has none. The recipe reads connected objects synced by the Analytics
+  Integration User, so new fields need its access and a template update.

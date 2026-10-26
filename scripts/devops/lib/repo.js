@@ -45,7 +45,10 @@ const TYPE_DIRS = new Set([
     'navigationMenus',
     'experiences',
     'digitalExperiences',
-    'digitalExperienceConfigs'
+    'digitalExperienceConfigs',
+    'uiBundles',
+    'wave',
+    'waveTemplates'
 ]);
 
 function readJson(relativePath) {

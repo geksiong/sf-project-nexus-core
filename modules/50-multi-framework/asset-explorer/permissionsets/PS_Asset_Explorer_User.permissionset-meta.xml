@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<PermissionSet xmlns="http://soap.sforce.com/2006/04/metadata">
+    <description>Nexus Asset Explorer (React UI bundle): read accounts, their installed assets and products. The app reads through UI API GraphQL, so it shows only what these permissions and sharing allow.</description>
+    <fieldPermissions><editable>false</editable><field>Asset.InstallDate</field><readable>true</readable></fieldPermissions>
+    <fieldPermissions><editable>false</editable><field>Asset.Price</field><readable>true</readable></fieldPermissions>
+    <fieldPermissions><editable>false</editable><field>Asset.Product2Id</field><readable>true</readable></fieldPermissions>
+    <fieldPermissions><editable>false</editable><field>Asset.Quantity</field><readable>true</readable></fieldPermissions>
+    <fieldPermissions><editable>false</editable><field>Asset.SerialNumber</field><readable>true</readable></fieldPermissions>
+    <fieldPermissions><editable>false</editable><field>Asset.Status</field><readable>true</readable></fieldPermissions>
+    <hasActivationRequired>false</hasActivationRequired>
+    <label>Asset Explorer User</label>
+    <objectPermissions><allowCreate>false</allowCreate><allowDelete>false</allowDelete><allowEdit>false</allowEdit><allowRead>true</allowRead><modifyAllRecords>false</modifyAllRecords><object>Account</object><viewAllRecords>false</viewAllRecords></objectPermissions>
+    <objectPermissions><allowCreate>false</allowCreate><allowDelete>false</allowDelete><allowEdit>false</allowEdit><allowRead>true</allowRead><modifyAllRecords>false</modifyAllRecords><object>Asset</object><viewAllRecords>false</viewAllRecords></objectPermissions>
+    <objectPermissions><allowCreate>false</allowCreate><allowDelete>false</allowDelete><allowEdit>false</allowEdit><allowRead>true</allowRead><modifyAllRecords>false</modifyAllRecords><object>Case</object><viewAllRecords>false</viewAllRecords></objectPermissions>
+    <objectPermissions><allowCreate>false</allowCreate><allowDelete>false</allowDelete><allowEdit>false</allowEdit><allowRead>true</allowRead><modifyAllRecords>false</modifyAllRecords><object>Product2</object><viewAllRecords>false</viewAllRecords></objectPermissions>
+</PermissionSet>

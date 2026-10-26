@@ -20,3 +20,10 @@ jsconfig.json
 
 # Apex test run output
 test-results/
+
+# Multi-Framework UI bundles (built by scripts/devops/build-ui-bundles.sh before deploy)
+**/uiBundles/*/dist/
+**/uiBundles/*/build/
+**/uiBundles/*/tsconfig.tsbuildinfo
+# Org-specific UI API schema written by `npm run graphql:schema` (IDE and codegen only; see .graphqlrc.yml)
+/schema.graphql
