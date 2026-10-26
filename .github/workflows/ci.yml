@@ -58,6 +58,9 @@ jobs:
       - name: LWC Jest
         run: npm run test:unit:coverage
 
+      - name: UI bundles (Vitest + type-check + build)
+        run: npm run test:ui-bundles
+
       - name: Agentforce / HXL contract schemas
         run: npm run validate:clt
 

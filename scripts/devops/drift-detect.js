@@ -109,8 +109,9 @@ function sameText(a, b) {
 }
 
 // Org-managed elements: a new Experience Cloud sender address only takes effect after email verification,
-// so the org keeps its own value regardless of what was deployed.
-const IGNORED_ELEMENTS = new Set(['emailSenderAddress']);
+// so the org keeps its own value regardless of what was deployed; the pending address (newSenderAddress) is the
+// admin's personal email and must never be retrieved into source.
+const IGNORED_ELEMENTS = new Set(['emailSenderAddress', 'newSenderAddress']);
 
 const isDefaultLeaf = (node) => !node.children.length && (node.text === '' || node.text === 'false');
 
@@ -182,7 +183,13 @@ function main() {
 
     try {
         // 1. Manifest of everything in the active modules (respects .forceignore).
+        // Modules with newer metadata (deployApiVersions, e.g. UIBundle) need the whole retrieve at that version.
+        const apiVersion = modules
+            .map((dir) => config.deployApiVersions?.[dir])
+            .filter(Boolean)
+            .reduce((max, v) => (Number(v) > Number(max) ? v : max), project.sourceApiVersion);
         const manifestArgs = ['project', 'generate', 'manifest', '--output-dir', work, '--name', 'package.xml'];
+        manifestArgs.push('--api-version', apiVersion);
         modules.forEach((dir) => manifestArgs.push('--source-dir', dir));
         sf(manifestArgs, repo.ROOT);
 
@@ -192,11 +199,23 @@ function main() {
             path.join(work, 'sfdx-project.json'),
             JSON.stringify({
                 packageDirectories: [{ path: 'force-app', default: true }],
-                sourceApiVersion: project.sourceApiVersion
+                sourceApiVersion: apiVersion
             })
         );
         sf(
-            ['project', 'retrieve', 'start', '--manifest', 'package.xml', '--target-org', targetOrg, '--wait', '20'],
+            [
+                'project',
+                'retrieve',
+                'start',
+                '--manifest',
+                'package.xml',
+                '--target-org',
+                targetOrg,
+                '--api-version',
+                apiVersion,
+                '--wait',
+                '20'
+            ],
             work
         );
 

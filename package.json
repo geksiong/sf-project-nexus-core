@@ -18,11 +18,12 @@
     "validate:clt": "node scripts/devops/validate-clt-schemas.js",
     "audit:metadata": "node scripts/devops/audit-orphaned-metadata.js",
     "audit:deps": "node scripts/devops/generate-dependency-graph.js",
-    "verify": "npm run format:check && npm run lint && npm run test:unit && npm run validate:clt && npm run audit:metadata && npm run audit:deps && npm run lint:apex && npm run test:pmd-rules",
+    "verify": "npm run format:check && npm run lint && npm run test:unit && npm run test:ui-bundles && npm run validate:clt && npm run audit:metadata && npm run audit:deps && npm run lint:apex && npm run test:pmd-rules",
     "test:apex": "scripts/devops/run-apex-tests.sh --target-org",
     "drift": "scripts/devops/drift-detect.sh --target-org",
     "setup:scratch": "scripts/org-init/setup-scratch-headless.sh",
-    "prepare": "husky"
+    "prepare": "husky",
+    "test:ui-bundles": "scripts/devops/build-ui-bundles.sh"
   },
   "lint-staged": {
     "*.{cls,trigger,js,html,json,md,yml,yaml}": "prettier --write",

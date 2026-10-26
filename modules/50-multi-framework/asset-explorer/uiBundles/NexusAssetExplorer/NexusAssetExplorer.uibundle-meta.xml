@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<UIBundle xmlns="http://soap.sforce.com/2006/04/metadata">
+    <masterLabel>Nexus Asset Explorer</masterLabel>
+    <description>Nexus Core Demo App 8: React account and installed-asset explorer (Salesforce Multi-Framework, UI API GraphQL, SLDS styling hooks).</description>
+    <isActive>true</isActive>
+    <version>1</version>
+</UIBundle>

@@ -49,7 +49,7 @@ sf apex run -f scripts/org-init/seed-capex.apex          # CapEx requests via th
 scripts/devops/run-apex-tests.sh --target-org nexus-dev
 ```
 
-Active modules (deployed, audited, tested) are listed in `config/devops/nexus-devops.json` `activeModules`; add a module there when its phase starts. Modules that need the full org shape (OmniStudio, Experience Cloud, CRM Analytics) go in `fullProfileModules`: the static gates audit them, but they deploy and test only with `--profile full` (`setup-scratch-headless.sh`, `run-apex-tests.sh`, `drift-detect.js`), not in CI Gate 3. Later-phase scaffolding inside an active module that does not deploy yet is listed in `.forceignore`; remove those entries as each phase is implemented.
+Active modules (deployed, audited, tested) are listed in `config/devops/nexus-devops.json` `activeModules`; add a module there when its phase starts. Modules that need the full org shape (OmniStudio, Experience Cloud, CRM Analytics, Multi-Framework) go in `fullProfileModules`: the static gates audit them, but they deploy and test only with `--profile full` (`setup-scratch-headless.sh`, `run-apex-tests.sh`, `drift-detect.js`), not in CI Gate 3. Later-phase scaffolding inside an active module that does not deploy yet is listed in `.forceignore`; remove those entries as each phase is implemented.
 
 ### 1.1 Quality Gates (run before every commit / PR)
 
@@ -152,6 +152,25 @@ public with sharing class ActionName {
 - FlexCards read data only through Integration Procedures (`dataSource.type = "IntegrationProcedures"`); Integration Procedures read through Data Mappers with `fieldLevelSecurityEnabled = true`; logic goes in a `System.Callable` Apex remote action (`Customer360Service`); log with Nebula `CallableLogger` steps.
 - OmniStudio validates references at deploy time: deploy Data Mappers after the fields they map and Integration Procedures after their Data Mappers and Apex. `setup-scratch-headless.sh --profile full` deploys full-profile modules in stages (classes + Data Mappers → Integration Procedures → rest) and activates each stage (deployed components can arrive inactive). Place FlexCards with `runtime_omnistudio:flexcard` (`flexcardName`).
 - There is no Apex or REST API to execute an Integration Procedure in core runtime: unit-test the Apex remote actions and verify the procedure in the designer Preview (README, Phase 5 checklist).
+
+## 4.2 CRM Analytics (Decoupled Templates)
+
+- Source is the `WaveTemplateBundle` only (`waveTemplates/<Name>/template-info.json` + recipes, dashboards, dataset
+  XMD). Do not commit `WaveApplication` / `WaveRecipe` / `WaveDataset` / `WaveDashboard` assets: they bind to org Ids.
+  The setup script creates the app from each template in `nexus-devops.json` `analyticsTemplates`
+  (`sf analytics app create --templatename`).
+- Recipes are Data Prep R3 and read connected objects (`SFDC_LOCAL`). To change analytics: edit the app in Analytics
+  Studio, `sf analytics template create -f <folderId> -r <recipeId>`, retrieve the bundle at API 66.0, and remove org
+  Ids, usernames and empty files before committing (ADR 0006, KI-039).
+
+## 4.3 Multi-Framework UI Bundles (React)
+
+- `uiBundles/<Name>` (React + TypeScript + Vite). Read data through `@salesforce/platform-sdk` GraphQL (UI API, user
+  permissions); grant what the bundle reads in a permission set; no custom Apex endpoints for plain reads.
+- Style with SLDS global styling hooks (`var(--slds-g-*, fallback)`); the bundle has its own `.prettierrc`, ESLint and
+  Vitest. `npm run test:ui-bundles` (Vitest, type check, build) runs in `verify` and CI.
+- Only `dist/` and the bundle metadata deploy (`.forceignore`); `UIBundle` needs API 66.0, so the module is listed in
+  `deployApiVersions` and deploys from a manifest generated at that version (KI-038).
 
 ## 5. Agentforce, MCP & HXL UI Contracts
 

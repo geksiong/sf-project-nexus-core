@@ -1,0 +1,97 @@
+{
+  "name": "Nexus_Pipeline_Recipe",
+  "label": "Nexus Pipeline Recipe",
+  "scheduleExpression": null,
+  "publishingTarget": "DATASET",
+  "format": "R3",
+  "scheduleType": null,
+  "recipeDefinition": {
+    "version": "68.0",
+    "nodes": {
+      "LOAD_OPPORTUNITY": {
+        "action": "load",
+        "sources": [],
+        "parameters": {
+          "fields": [
+            "Id",
+            "Name",
+            "AccountId",
+            "StageName",
+            "Amount",
+            "CloseDate",
+            "Probability",
+            "IsClosed",
+            "IsWon",
+            "ForecastCategoryName",
+            "CreatedDate"
+          ],
+          "dataset": {
+            "type": "connectedDataset",
+            "label": "Opportunity",
+            "connectionName": "SFDC_LOCAL",
+            "sourceObjectName": "Opportunity"
+          },
+          "sampleDetails": {
+            "type": "TopN",
+            "sortBy": []
+          }
+        }
+      },
+      "LOAD_ACCOUNT": {
+        "action": "load",
+        "sources": [],
+        "parameters": {
+          "fields": ["Id", "Name", "Industry", "Type", "BillingCountry", "BillingCity", "AnnualRevenue"],
+          "dataset": {
+            "type": "connectedDataset",
+            "label": "Account",
+            "connectionName": "SFDC_LOCAL",
+            "sourceObjectName": "Account"
+          },
+          "sampleDetails": {
+            "type": "TopN",
+            "sortBy": []
+          }
+        }
+      },
+      "JOIN_ACCOUNT": {
+        "action": "join",
+        "sources": ["LOAD_OPPORTUNITY", "LOAD_ACCOUNT"],
+        "schema": {
+          "fields": [],
+          "slice": {
+            "mode": "DROP",
+            "ignoreMissingFields": true,
+            "fields": ["Account.Id"]
+          }
+        },
+        "parameters": {
+          "joinType": "LOOKUP",
+          "leftKeys": ["AccountId"],
+          "rightQualifier": "Account",
+          "rightKeys": ["Id"]
+        }
+      },
+      "SAVE_PIPELINE": {
+        "action": "save",
+        "sources": ["JOIN_ACCOUNT"],
+        "parameters": {
+          "fields": [],
+          "dataset": {
+            "type": "analyticsDataset",
+            "label": "Nexus Pipeline",
+            "name": "${App.Datasets.Nexus_Pipeline_tp.Name}",
+            "folderName": "${App.Folder.FullyQualifiedName}"
+          }
+        }
+      }
+    },
+    "ui": {
+      "nodes": {},
+      "connectors": [],
+      "hiddenColumns": []
+    },
+    "runMode": null
+  },
+  "lastTime": null
+}

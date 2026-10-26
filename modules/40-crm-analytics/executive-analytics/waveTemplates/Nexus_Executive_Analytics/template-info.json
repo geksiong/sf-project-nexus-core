@@ -1,0 +1,70 @@
+{
+  "templateType": "app",
+  "label": "Nexus Executive Analytics",
+  "name": "Nexus_Executive_Analytics",
+  "description": "Nexus Core Demo App 7: executive pipeline analytics (decoupled template).",
+  "assetVersion": 68.0,
+  "variableDefinition": "variables.json",
+  "uiDefinition": "ui.json",
+  "rules": [
+    {
+      "type": "templateToApp",
+      "file": "template-to-app-rules.json"
+    },
+    {
+      "type": "appToTemplate",
+      "file": "app-to-template-rules.json"
+    }
+  ],
+  "releaseInfo": {
+    "templateVersion": "1.0",
+    "notesFile": "releaseNotes.html"
+  },
+  "folderDefinition": "folder.json",
+  "externalFiles": [],
+  "lenses": [],
+  "dashboards": [
+    {
+      "label": "Nexus Pipeline Overview",
+      "name": "Nexus_Pipeline_Overview_tp",
+      "condition": "${Variables.Overrides.createAllDashboards}",
+      "file": "dashboards/Nexus_Pipeline_Overview.json"
+    }
+  ],
+  "components": [],
+  "dataTransforms": [],
+  "eltDataflows": [],
+  "recipes": [
+    {
+      "label": "Nexus Pipeline Recipe",
+      "name": "Nexus_Pipeline_Recipe",
+      "condition": "${Variables.Overrides.createAllRecipes}",
+      "file": "recipes/Nexus_Pipeline_Recipe.json",
+      "executeCondition": "CreateSyncExecute"
+    }
+  ],
+  "datasetFiles": [
+    {
+      "label": "Nexus Pipeline",
+      "name": "Nexus_Pipeline_tp",
+      "condition": "${Variables.Overrides.createAllDatasetFiles}",
+      "userXmd": "dataset_files/Nexus_Pipeline_XMD.json"
+    }
+  ],
+  "dataModelObjects": [],
+  "storedQueries": [],
+  "mlSetups": [],
+  "mlSetupGroups": [],
+  "imageFiles": [],
+  "extendedTypes": {},
+  "templateDependencies": [],
+  "icons": {
+    "appBadge": {
+      "name": "16.png"
+    },
+    "templateBadge": {
+      "name": "default.png"
+    },
+    "templatePreviews": []
+  }
+}

@@ -1,7 +1,12 @@
 {
   "$comment": "Single source of truth for Nexus Core DevOps gates (scripts/devops, scripts/org-init, CI). activeModules deploy to the headless scratch org (CI); fullProfileModules need the full org shape (setup-scratch-headless.sh --profile full) and are covered by the static gates only.",
   "activeModules": ["modules/00-foundation", "modules/10-core-domain"],
-  "fullProfileModules": ["modules/20-omnistudio", "modules/30-experience-cloud"],
+  "fullProfileModules": [
+    "modules/20-omnistudio",
+    "modules/30-experience-cloud",
+    "modules/40-crm-analytics",
+    "modules/50-multi-framework"
+  ],
   "deployStages": {
     "$comment": "Full-profile modules deploy in these stages (directory names, or paths relative to the module), then whole. OmniStudio validates references at deploy time; a site's guest profile and guest sharing rules exist only once the site does.",
     "modules/20-omnistudio": [["classes", "omniDataTransforms"], ["omniIntegrationProcedures"]],
@@ -24,7 +29,13 @@
       ["networks", "sites", "navigationMenus", "digitalExperienceConfigs", "digitalExperiences", "experiences"]
     ]
   },
+  "deployApiVersions": {
+    "$comment": "Modules whose metadata needs a newer API than sfdx-project.json sourceApiVersion (UIBundle, WaveTemplateBundle with recipe R3 assets: 66.0+). They deploy from a manifest generated at this version; drift retrieves at the highest version in use.",
+    "modules/50-multi-framework": "66.0",
+    "modules/40-crm-analytics": "66.0"
+  },
   "publishSites": ["Nexus Hospitality", "Nexus Partner Central"],
+  "analyticsTemplates": ["Nexus_Executive_Analytics"],
   "minApexCoverage": 85,
   "externalPackages": {
     "Nebula Logger - Core@4.19.5": {

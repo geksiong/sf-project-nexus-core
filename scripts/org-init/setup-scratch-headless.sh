@@ -132,8 +132,14 @@ if [[ ${#FULL_MODULES[@]} -gt 0 ]]; then
     NEXUS_SITE_EMAIL=$(sf_json data query -o "$ALIAS" -q "SELECT Email FROM User WHERE Username = '$NEXUS_SITE_ADMIN'" \
         | jq -r '.result.records[0].Email')
 fi
+if [[ ${#FULL_MODULES[@]} -gt 0 ]] && find "${FULL_MODULES[@]}" -path '*/uiBundles/*/package.json' -not -path '*/node_modules/*' | grep -q .; then
+    step "Building UI bundles (Multi-Framework)"
+    scripts/devops/build-ui-bundles.sh --skip-tests | sed 's/^/    /'
+fi
 for module in "${FULL_MODULES[@]}"; do
     step "Deploying $module (full profile)"
+    # Metadata newer than sourceApiVersion (e.g. UIBundle) deploys from a manifest generated at that version.
+    MODULE_API=$(jq -r --arg m "$module" '.deployApiVersions[$m] // empty' config/devops/nexus-devops.json)
     STAGES=()
     while IFS= read -r stage; do STAGES+=("$stage"); done < <(jq -r --arg m "$module" \
         '(.deployStages[$m] // [])[] | join(" ")' config/devops/nexus-devops.json)
@@ -152,6 +158,12 @@ for module in "${FULL_MODULES[@]}"; do
             done
         fi
         [[ ${#STAGE_ARGS[@]} -eq 0 ]] && continue
+        if [[ -n "$MODULE_API" ]]; then
+            MANIFEST_DIR=$(mktemp -d)
+            sf_json project generate manifest "${STAGE_ARGS[@]/#-d/--source-dir}" --api-version "$MODULE_API" \
+                --output-dir "$MANIFEST_DIR" --name package.xml >/dev/null
+            STAGE_ARGS=(--manifest "$MANIFEST_DIR/package.xml" --api-version "$MODULE_API")
+        fi
         sf_json project deploy start -o "$ALIAS" "${STAGE_ARGS[@]}" --wait 30 \
             | jq -r --arg s "${stage:-remaining metadata}" '"    \($s | .[0:60]): \(.result.numberComponentsDeployed) components deployed"'
         activate_omnistudio "$module"
@@ -167,7 +179,8 @@ fi
 step "Assigning admin permission sets"
 ADMIN_ID=$(sf_json org display user -o "$ALIAS" | jq -r '.result.id')
 PERMSETS=(PS_Nexus_Admin PS_Sales_Admin LoggerAdmin PS_CapEx_Submitter PS_CapEx_Admin)
-[[ "$PROFILE" == "full" ]] && PERMSETS+=(PS_Customer360_User PS_Portal_Content_Author PS_Channel_Manager)
+[[ "$PROFILE" == "full" ]] && PERMSETS+=(PS_Customer360_User PS_Portal_Content_Author PS_Channel_Manager \
+    PS_Asset_Explorer_User EinsteinAnalyticsPlusAdmin)
 for permset in "${PERMSETS[@]}"; do
     if [[ -z "$(query_id "SELECT Id FROM PermissionSetAssignment WHERE AssigneeId = '$ADMIN_ID' AND PermissionSet.Name = '$permset'")" ]]; then
         sf_json org assign permset -o "$ALIAS" -n "$permset" >/dev/null
@@ -246,6 +259,8 @@ sf_json apex run -o "$ALIAS" -f scripts/org-init/seed-capex.apex \
 if [[ "$PROFILE" == "full" ]]; then
     sf_json apex run -o "$ALIAS" -f scripts/org-init/seed-portals.apex \
         | jq -r '.result.logs' | grep -oE 'USER_DEBUG\|[^|]*\|DEBUG\|.*' | cut -d'|' -f4 | sed 's/^/    Portals: /'
+    sf_json apex run -o "$ALIAS" -f scripts/org-init/seed-assets.apex \
+        | jq -r '.result.logs' | grep -oE 'USER_DEBUG\|[^|]*\|DEBUG\|.*' | cut -d'|' -f4 | sed 's/^/    Assets: /'
     sf_json apex run -o "$ALIAS" -f scripts/org-init/schedule-jobs.apex \
         | jq -r '.result.logs' | grep -oE 'USER_DEBUG\|[^|]*\|DEBUG\|.*' | cut -d'|' -f4 | sed 's/^/    Jobs: /'
 fi
@@ -277,6 +292,25 @@ EmailEncodingKey=UTF-8 LanguageLocaleKey=en_US" | jq -r '.result.id')
     echo "    Partner user Tom Alvarez ($PARTNER_USER_ID) at Nexus Global Channel Partners; channel manager $MANAGER_ID"
 fi
 
+if [[ "$PROFILE" == "full" ]]; then
+    # Decoupled CRM Analytics packaging (ADR 0006): the template is the source; the app is created from it after the
+    # seed data exists, because creating the app syncs the connected objects and runs the recipe.
+    while IFS= read -r template; do
+        step "Creating CRM Analytics app from template '$template'"
+        if [[ -n "$(sf api request rest /services/data/v66.0/wave/folders -o "$ALIAS" 2>/dev/null \
+            | jq -r --arg t "$template" '.folders[] | select(.name == $t) | .id')" ]]; then
+            echo "    App already exists - skipped"
+            continue
+        fi
+        APP_RESULT=$(sf_json analytics app create -o "$ALIAS" --templatename "$template" --appname "$template" --wait 20)
+        jq -r '.result.events[] | "    \(.EventType) \(.ItemLabel): \(.Status)"' <<<"$APP_RESULT"
+        if jq -e '[.result.events[] | select(.Status != "Success")] | length > 0' <<<"$APP_RESULT" >/dev/null; then
+            echo "Creating the analytics app from '$template' failed: $(jq -c '.result.events' <<<"$APP_RESULT")" >&2
+            exit 1
+        fi
+    done < <(jq -r '(.analyticsTemplates // [])[]' config/devops/nexus-devops.json)
+fi
+
 if [[ "$SKIP_TESTS" == false ]]; then
     step "Running Nexus Core Apex tests (coverage gate)"
     scripts/devops/run-apex-tests.sh --target-org "$ALIAS" --profile "$PROFILE" --output-dir "test-results/$ALIAS"
@@ -288,4 +322,6 @@ echo "    Sales app:     sf org open -o $ALIAS -p lightning/app/c__Nexus_Sales"
 echo "    Service app:   sf org open -o $ALIAS -p lightning/app/c__Nexus_Service"
 echo "    Operations:    sf org open -o $ALIAS -p lightning/app/c__Nexus_Operations"
 [[ "$PROFILE" == "full" ]] && echo "    Customer 360:  sf org open -o $ALIAS -p lightning/app/c__Nexus_Customer_360"
+[[ "$PROFILE" == "full" ]] && echo "    Analytics:     sf org open -o $ALIAS -p lightning/n/standard-AnalyticsStudio (app Nexus Executive Analytics)"
+[[ "$PROFILE" == "full" ]] && echo "    Explorer:      App Launcher > Nexus Asset Explorer (React UI bundle)"
 [[ "$PROFILE" == "full" ]] && echo "    Portals:       sf org open -o $ALIAS -p lightning/app/c__Nexus_Portals (sites: Setup > Digital Experiences)"

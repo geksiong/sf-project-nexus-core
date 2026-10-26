@@ -1,0 +1,80 @@
+/*
+ * SLDS 2 global styling hooks (--slds-g-*) with fallbacks, so the explorer follows the org's theme when the
+ * hooks are present and still renders sensibly in local dev (`npm run dev`) where they are not.
+ */
+.nx-explorer {
+  display: grid;
+  grid-template-columns: minmax(16rem, 22rem) 1fr;
+  gap: var(--slds-g-spacing-4, 1rem);
+  padding: var(--slds-g-spacing-4, 1rem);
+  font-family: var(--slds-g-font-family, system-ui, sans-serif);
+  color: var(--slds-g-color-on-surface-1, #2e2e2e);
+}
+.nx-panel {
+  background: var(--slds-g-color-surface-container-1, #ffffff);
+  border: 1px solid var(--slds-g-color-border-1, #e5e5e5);
+  border-radius: var(--slds-g-radius-border-2, 0.5rem);
+  padding: var(--slds-g-spacing-4, 1rem);
+}
+.nx-heading {
+  font-size: var(--slds-g-font-scale-4, 1.25rem);
+  font-weight: var(--slds-g-font-weight-bold, 700);
+}
+.nx-muted {
+  color: var(--slds-g-color-on-surface-2, #5c5c5c);
+}
+.nx-error {
+  color: var(--slds-g-color-error-1, #ba0517);
+}
+.nx-label {
+  display: block;
+  margin-bottom: var(--slds-g-spacing-1, 0.25rem);
+}
+.nx-input {
+  width: 100%;
+  padding: var(--slds-g-spacing-2, 0.5rem);
+  border: 1px solid var(--slds-g-color-border-2, #c9c9c9);
+  border-radius: var(--slds-g-radius-border-1, 0.25rem);
+}
+.nx-list {
+  list-style: none;
+  margin-top: var(--slds-g-spacing-3, 0.75rem);
+  padding: 0;
+}
+.nx-list__item {
+  display: flex;
+  justify-content: space-between;
+  width: 100%;
+  padding: var(--slds-g-spacing-2, 0.5rem);
+  border-radius: var(--slds-g-radius-border-1, 0.25rem);
+  text-align: left;
+}
+.nx-list__item[aria-pressed='true'] {
+  background: var(--slds-g-color-accent-container-1, #eef4ff);
+}
+.nx-stats {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--slds-g-spacing-3, 0.75rem);
+  margin: var(--slds-g-spacing-4, 1rem) 0;
+}
+.nx-stats dt {
+  color: var(--slds-g-color-on-surface-2, #5c5c5c);
+}
+.nx-stats dd {
+  font-size: var(--slds-g-font-scale-5, 1.5rem);
+  font-weight: var(--slds-g-font-weight-bold, 700);
+}
+.nx-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+.nx-table th,
+.nx-table td {
+  padding: var(--slds-g-spacing-2, 0.5rem);
+  border-bottom: 1px solid var(--slds-g-color-border-1, #e5e5e5);
+  text-align: left;
+}
+.nx-num {
+  text-align: right;
+}

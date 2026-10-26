@@ -1,0 +1,178 @@
+{
+  "name": "Nexus_Pipeline_Overview_tp",
+  "label": "Nexus Pipeline Overview",
+  "description": "Open pipeline, wins and pipeline by stage and industry.",
+  "folder": {
+    "id": "${App.Folder.Id}"
+  },
+  "dateVersion": 1,
+  "mobileDisabled": false,
+  "xmd": {
+    "measures": [],
+    "derivedDimensions": [],
+    "organizations": [],
+    "showDetailsDefaultFields": [],
+    "dates": [],
+    "derivedMeasures": [],
+    "dimensions": []
+  },
+  "state": {
+    "filters": [],
+    "gridLayouts": [
+      {
+        "name": "Default",
+        "numColumns": 12,
+        "pages": [
+          {
+            "label": "Pipeline",
+            "name": "pipeline",
+            "navigationHidden": false,
+            "widgets": [
+              {
+                "colspan": 6,
+                "column": 0,
+                "name": "num_open",
+                "row": 0,
+                "rowspan": 3
+              },
+              {
+                "colspan": 6,
+                "column": 6,
+                "name": "num_won",
+                "row": 0,
+                "rowspan": 3
+              },
+              {
+                "colspan": 6,
+                "column": 0,
+                "name": "chart_stage",
+                "row": 3,
+                "rowspan": 9
+              },
+              {
+                "colspan": 6,
+                "column": 6,
+                "name": "chart_industry",
+                "row": 3,
+                "rowspan": 9
+              }
+            ]
+          }
+        ],
+        "selectors": [],
+        "version": 1.0
+      }
+    ],
+    "layouts": [],
+    "steps": {
+      "won_amount": {
+        "broadcastFacet": true,
+        "query": "q = load \"${App.Datasets.Nexus_Pipeline_tp.FullyQualifiedName}\";\nq = filter q by 'IsWon' == \"true\";\nq = group q by all;\nq = foreach q generate sum('Amount') as 'Closed Won';",
+        "receiveFacetSource": {
+          "mode": "all",
+          "steps": []
+        },
+        "type": "saql",
+        "useGlobal": true
+      },
+      "by_stage": {
+        "broadcastFacet": true,
+        "query": "q = load \"${App.Datasets.Nexus_Pipeline_tp.FullyQualifiedName}\";\nq = group q by 'StageName';\nq = foreach q generate 'StageName' as 'StageName', sum('Amount') as 'Amount';\nq = order q by 'Amount' desc;",
+        "receiveFacetSource": {
+          "mode": "all",
+          "steps": []
+        },
+        "type": "saql",
+        "useGlobal": true
+      },
+      "by_industry": {
+        "broadcastFacet": true,
+        "query": "q = load \"${App.Datasets.Nexus_Pipeline_tp.FullyQualifiedName}\";\nq = filter q by 'IsClosed' == \"false\";\nq = group q by 'Account.Industry';\nq = foreach q generate 'Account.Industry' as 'Industry', sum('Amount') as 'Amount';\nq = order q by 'Amount' desc;",
+        "receiveFacetSource": {
+          "mode": "all",
+          "steps": []
+        },
+        "type": "saql",
+        "useGlobal": true
+      },
+      "open_pipeline": {
+        "broadcastFacet": true,
+        "query": "q = load \"${App.Datasets.Nexus_Pipeline_tp.FullyQualifiedName}\";\nq = filter q by 'IsClosed' == \"false\";\nq = group q by all;\nq = foreach q generate sum('Amount') as 'Open Pipeline';",
+        "receiveFacetSource": {
+          "mode": "all",
+          "steps": []
+        },
+        "type": "saql",
+        "useGlobal": true
+      }
+    },
+    "widgets": {
+      "chart_stage": {
+        "parameters": {
+          "columnMap": {
+            "split": [],
+            "trellis": [],
+            "dimensionAxis": ["StageName"],
+            "plots": ["Amount"]
+          },
+          "showValues": true,
+          "legend": {
+            "show": false
+          },
+          "visualizationType": "hbar",
+          "step": "by_stage",
+          "title": {
+            "label": "Pipeline by Stage",
+            "align": "left"
+          }
+        },
+        "type": "chart"
+      },
+      "chart_industry": {
+        "parameters": {
+          "columnMap": {
+            "split": [],
+            "trellis": [],
+            "dimensionAxis": ["Industry"],
+            "plots": ["Amount"]
+          },
+          "showValues": true,
+          "legend": {
+            "show": false
+          },
+          "visualizationType": "donut",
+          "step": "by_industry",
+          "title": {
+            "label": "Open Pipeline by Industry",
+            "align": "left"
+          }
+        },
+        "type": "chart"
+      },
+      "num_open": {
+        "parameters": {
+          "compact": true,
+          "interactions": [],
+          "measureField": "Open Pipeline",
+          "numberSize": 32,
+          "step": "open_pipeline",
+          "textAlignment": "center",
+          "title": "Open Pipeline"
+        },
+        "type": "number"
+      },
+      "num_won": {
+        "parameters": {
+          "compact": true,
+          "interactions": [],
+          "measureField": "Closed Won",
+          "numberSize": 32,
+          "step": "won_amount",
+          "textAlignment": "center",
+          "title": "Closed Won"
+        },
+        "type": "number"
+      }
+    }
+  }
+}
